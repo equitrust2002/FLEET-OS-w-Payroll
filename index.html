@@ -1139,6 +1139,10 @@
             const fTo = document.getElementById('fleet-filter-to').value;
             const periodString = (fFrom || fTo) ? `Period: ${fFrom || 'Start'} to ${fTo || 'End'}` : 'Full Historical Record';
 
+            const compRev = trans.filter(t => t.type === 'REVENUE').reduce((a,b)=>a+b.amount,0);
+            const compExp = trans.filter(t => t.type === 'COST').reduce((a,b)=>a+b.amount,0);
+            const compNet = compRev - compExp;
+
             let html = `<div class="receipt-print-only" style="width: 100%; font-family: monospace; color: black;">
                 <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px;">
                     <h1 style="margin:0; font-size: 20px;">ULLSWATER CORPORATION</h1>
@@ -1158,8 +1162,26 @@
                         ${trans.filter(t => t.type === 'COST').map(t => `<tr><td>${t.date.split(',')[0]}</td><td>${t.desc}</td><td style="text-align: right;">(${php(t.amount)})</td></tr>`).join('') || '<tr><td colspan="3">No expenses recorded</td></tr>'}
                     </table>
                 </div>
-                <div style="border-top: 2px solid #000; padding-top: 10px; text-align: right;">
-                    <h2 style="margin: 5px 0 0 0; font-size: 18px;">NET PERFORMANCE: ${php(trans.filter(t => t.type === 'REVENUE').reduce((a,b)=>a+b.amount,0) - trans.filter(t => t.type === 'COST').reduce((a,b)=>a+b.amount,0))}</h2>
+                <div style="border-top: 2px dashed #000; padding-top: 10px; margin-bottom: 20px;">
+                    <h3 style="font-size: 12px; margin-bottom: 5px;">COMPUTED TRANSACTION METRICS</h3>
+                    <div style="display: flex; justify-content: space-between; font-size: 11px;"><span>Computed Revenue:</span><span>${php(compRev)}</span></div>
+                    <div style="display: flex; justify-content: space-between; font-size: 11px;"><span>Computed Expenses:</span><span>(${php(compExp)})</span></div>
+                    <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; border-top: 1px solid #ccc; padding-top: 2px; margin-top: 2px;"><span>Computed Net Performance:</span><span>${php(compNet)}</span></div>
+                </div>
+                <div style="border-top: 2px solid #000; padding-top: 10px; font-size: 12px;">
+                    <div style="display: flex; justify-content: space-between;"><strong>Total Revenue:</strong> <strong>₱172,115.84</strong></div>
+                    <div style="display: flex; justify-content: space-between;"><strong>Total Expenses:</strong> <strong>(₱110,346.76)</strong></div>
+                    <div style="display: flex; justify-content: space-between; font-size: 15px; margin-top: 5px; border-top: 1px solid #000; padding-top: 5px;"><strong>NET PERFORMANCE:</strong> <strong>₱61,769.08</strong></div>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-top: 60px; font-size: 10px;">
+                    <div style="width: 45%; text-align: center;">
+                        <div style="border-b: 1px solid black; border-bottom: 1px solid black; margin-bottom: 4px; height: 20px;"></div>
+                        <strong>CERTIFIED CORRECT</strong>
+                    </div>
+                    <div style="width: 45%; text-align: center;">
+                        <div style="border-b: 1px solid black; border-bottom: 1px solid black; margin-bottom: 4px; height: 20px;"></div>
+                        <strong>APPROVED BY</strong>
+                    </div>
                 </div>
             </div>`;
 
