@@ -1139,9 +1139,9 @@
             const fTo = document.getElementById('fleet-filter-to').value;
             const periodString = (fFrom || fTo) ? `Period: ${fFrom || 'Start'} to ${fTo || 'End'}` : 'Full Historical Record';
 
-            const compRev = trans.filter(t => t.type === 'REVENUE').reduce((a,b)=>a+b.amount,0);
-            const compExp = trans.filter(t => t.type === 'COST').reduce((a,b)=>a+b.amount,0);
-            const compNet = compRev - compExp;
+            const revTotal = trans.filter(t => t.type === 'REVENUE').reduce((a, b) => a + b.amount, 0);
+            const expTotal = trans.filter(t => t.type === 'COST').reduce((a, b) => a + b.amount, 0);
+            const netPerformance = revTotal - expTotal;
 
             let html = `<div class="receipt-print-only" style="width: 100%; font-family: monospace; color: black;">
                 <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px;">
@@ -1162,25 +1162,28 @@
                         ${trans.filter(t => t.type === 'COST').map(t => `<tr><td>${t.date.split(',')[0]}</td><td>${t.desc}</td><td style="text-align: right;">(${php(t.amount)})</td></tr>`).join('') || '<tr><td colspan="3">No expenses recorded</td></tr>'}
                     </table>
                 </div>
-                <div style="border-top: 2px dashed #000; padding-top: 10px; margin-bottom: 20px;">
-                    <h3 style="font-size: 12px; margin-bottom: 5px;">COMPUTED TRANSACTION METRICS</h3>
-                    <div style="display: flex; justify-content: space-between; font-size: 11px;"><span>Computed Revenue:</span><span>${php(compRev)}</span></div>
-                    <div style="display: flex; justify-content: space-between; font-size: 11px;"><span>Computed Expenses:</span><span>(${php(compExp)})</span></div>
-                    <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; border-top: 1px solid #ccc; padding-top: 2px; margin-top: 2px;"><span>Computed Net Performance:</span><span>${php(compNet)}</span></div>
+                <div style="border-top: 2px solid #000; padding-top: 10px; font-size: 11px; line-height: 1.6;">
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>TOTAL REVENUE:</span>
+                        <span>${php(revTotal)}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>TOTAL EXPENSES:</span>
+                        <span>(${php(expTotal)})</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; border-top: 1px dashed #000; margin-top: 5px; padding-top: 5px; font-weight: bold; font-size: 14px;">
+                        <span>NET PERFORMANCE:</span>
+                        <span>${php(netPerformance)}</span>
+                    </div>
                 </div>
-                <div style="border-top: 2px solid #000; padding-top: 10px; font-size: 12px;">
-                    <div style="display: flex; justify-content: space-between;"><strong>Total Revenue:</strong> <strong>₱172,115.84</strong></div>
-                    <div style="display: flex; justify-content: space-between;"><strong>Total Expenses:</strong> <strong>(₱110,346.76)</strong></div>
-                    <div style="display: flex; justify-content: space-between; font-size: 15px; margin-top: 5px; border-top: 1px solid #000; padding-top: 5px;"><strong>NET PERFORMANCE:</strong> <strong>₱61,769.08</strong></div>
-                </div>
-                <div style="display: flex; justify-content: space-between; margin-top: 60px; font-size: 10px;">
+                <div style="display: flex; justify-content: space-between; margin-top: 50px; border-top: 1px solid #ddd; padding-top: 20px;">
                     <div style="width: 45%; text-align: center;">
-                        <div style="border-b: 1px solid black; border-bottom: 1px solid black; margin-bottom: 4px; height: 20px;"></div>
-                        <strong>CERTIFIED CORRECT</strong>
+                        <div style="border-bottom: 1px solid black; margin-bottom: 5px; height: 30px;"></div>
+                        <p style="margin: 0; font-size: 10px; font-weight: bold;">CERTIFIED TRUE AND CORRECT</p>
                     </div>
                     <div style="width: 45%; text-align: center;">
-                        <div style="border-b: 1px solid black; border-bottom: 1px solid black; margin-bottom: 4px; height: 20px;"></div>
-                        <strong>APPROVED BY</strong>
+                        <div style="border-bottom: 1px solid black; margin-bottom: 5px; height: 30px;"></div>
+                        <p style="margin: 0; font-size: 10px; font-weight: bold;">APPROVED BY</p>
                     </div>
                 </div>
             </div>`;
@@ -1401,6 +1404,46 @@
             closeModal('staff'); refresh();
         }
 
+        function doRegister() {
+            const id = document.getElementById('r-id').value.toUpperCase().trim();
+            const name = document.getElementById('r-name').value.trim();
+            if(!id || !name) return alert("All fields required.");
+            db.fleet.push({ id, name, timestamp: getNow() });
+            closeModal('reg'); refresh();
+        }
+
+        function doStock() {
+            const name = document.getElementById('i-name').value.trim();
+            const qty = parseInt(document.getElementById('i-qty').value) || 0;
+            const cost = parseFloat(document.getElementById('i-cost').value) || 0;
+            if(!name || qty <= 0 || cost <= 0) return alert("Check parameters.");
+            db.inventory.push({ name, qty, cost, timestamp: getNow() });
+            document.getElementById('i-name').value = "";
+            document.getElementById('i-qty').value = "";
+            document.getElementById('i-cost').value = "";
+            refresh();
+        }
+
+        function doJobOrder() {
+            const unitId = document.getElementById('m-unit').value;
+            const idx = document.getElementById('m-part-idx').value;
+            const partQty = parseInt(document.getElementById('m-part-qty').value) || 0;
+            const jobs = document.getElementById('m-jobs').value.trim();
+            if(!jobs) return alert("Provide mechanics description.");
+            let partName = "None (Labor Only)";
+            if(idx !== "") {
+                const item = db.inventory[idx];
+                if(item.qty < partQty) return alert("Insufficient inventory.");
+                item.qty -= partQty;
+                partName = item.name;
+                db.finance.push({ date: getNow(), unitId, type: 'COST', desc: `[Motorpool Parts] ${partName} (x${partQty}) used for Job Order`, amount: partQty * item.cost });
+            }
+            db.maint.push({ unitId, jobs, partName, partQty, date: getNow() });
+            document.getElementById('m-part-qty').value = "";
+            document.getElementById('m-jobs').value = "";
+            refresh();
+        }
+
         function doRevenue() {
             const uId = document.getElementById('rev-unit').value;
             const customDateInput = document.getElementById('rev-date').value;
@@ -1418,107 +1461,78 @@
             closeModal('rev'); refresh();
         }
 
-        function doJobOrder() {
-            const uId = document.getElementById('m-unit').value;
-            const pIdx = document.getElementById('m-part-idx').value;
-            const pQty = parseInt(document.getElementById('m-part-qty').value) || 0;
-            let cost = 0, pName = "Mechanic Labor Only";
-            if(pIdx !== "") {
-                const p = db.inventory[pIdx]; if(p.qty < pQty) return alert("Insufficient Supply.");
-                p.qty -= pQty; cost = p.cost * pQty; pName = p.name;
-            }
-            db.maint.push({ unitId: uId, jobs: document.getElementById('m-jobs').value, partName: pName, partQty: pQty, date: getNow() });
-            db.finance.push({ date: getNow(), unitId: uId, type: 'COST', desc: `Service: ${pName}`, amount: cost });
-            refresh();
-        }
-
-        function doRegister() {
-            db.fleet.push({ id: document.getElementById('r-id').value.toUpperCase(), name: document.getElementById('r-name').value, timestamp: getNow() });
-            closeModal('reg'); refresh();
-        }
-
-        function doStock() {
-            db.inventory.push({ name: document.getElementById('i-name').value, qty: parseInt(document.getElementById('i-qty').value) || 0, cost: parseFloat(document.getElementById('i-cost').value) || 0, timestamp: getNow() });
-            refresh();
-        }
-
         function prepEdit(dept, idx) {
-            currentEdit = { dept, idx }; const rec = db[dept][idx]; let html = '';
-            if (dept === 'finance' || dept === 'po') {
-                html += `<div><label class="text-[10px] font-black text-slate-400 uppercase">date</label><input type="datetime-local" id="edit-date" value="${formatDateForInput(rec.date)}" class="w-full p-4 rounded-xl bg-slate-50 font-bold"></div>`;
+            currentEdit = { dept, idx };
+            const data = db[dept][idx];
+            let html = '';
+            for (let key in data) {
+                if (key === 'timestamp' || key === 'date') {
+                    html += `<div><label class="text-[10px] font-black text-slate-400 uppercase block mb-1">${key}</label><input type="datetime-local" id="edit-${key}" class="w-full p-4 rounded-xl bg-slate-50 font-bold" value="${formatDateForInput(data[key])}"></div>`;
+                } else {
+                    html += `<div><label class="text-[10px] font-black text-slate-400 uppercase block mb-1">${key}</label><input type="text" id="edit-${key}" class="w-full p-4 rounded-xl bg-slate-50 font-bold" value="${data[key]}"></div>`;
+                }
             }
-            for (let k in rec) { 
-                if(['date','type','timestamp','isSettlement'].includes(k)) continue;
-                html += `<div><label class="text-[10px] font-black text-slate-400 uppercase">${k}</label><input type="text" id="edit-${k}" value="${rec[k]}" class="w-full p-4 rounded-xl bg-slate-50 font-bold"></div>`;
-            }
-            document.getElementById('edit-fields').innerHTML = html; openModal('edit');
+            document.getElementById('edit-fields').innerHTML = html;
+            openModal('edit');
         }
 
         function commitEdit() {
             const { dept, idx } = currentEdit;
-            if ((dept === 'finance' || dept === 'po') && document.getElementById('edit-date')) {
-                db[dept][idx]['date'] = parseInputToLocaleString(document.getElementById('edit-date').value);
-            }
-            for (let k in db[dept][idx]) {
-                if (k === 'date' && (dept === 'finance' || dept === 'po')) continue;
-                const el = document.getElementById('edit-' + k);
-                if (el) {
-                    db[dept][idx][k] = (isNaN(el.value) || el.value === "") ? el.value : parseFloat(el.value);
+            const record = db[dept][idx];
+            for (let key in record) {
+                const inputEl = document.getElementById(`edit-${key}`);
+                if (inputEl) {
+                    let val = inputEl.value;
+                    if (key === 'timestamp' || key === 'date') {
+                        record[key] = parseInputToLocaleString(val);
+                    } else {
+                        record[key] = isNaN(val) || val === "" ? val : parseFloat(val);
+                    }
                 }
             }
-
-            // Recalculate net payout dynamically if editing a settlement transaction
-            if (dept === 'finance' && db[dept][idx].isSettlement) {
-                const rec = db[dept][idx];
-                const baseRate = parseFloat(rec.baseRate) || 0;
-                const regHrs = parseFloat(rec.regHrs) || 0;
-                const otHrs = parseFloat(rec.otHrs) || 0;
-                const rdHrs = parseFloat(rec.rdHrs) || 0;
-                const shHrs = parseFloat(rec.shHrs) || 0;
-                const holHrs = parseFloat(rec.holHrs) || 0;
-                const manualDeductions = parseFloat(rec.manualDeductions) || 0;
-                
-                const grossBasic = baseRate * regHrs;
-                const otPay = baseRate * 1.25 * otHrs;
-                const rdPay = baseRate * 1.30 * rdHrs;
-                const shPay = baseRate * 1.30 * shHrs;
-                const holPay = baseRate * 2.00 * holHrs;
-                const grossEarnings = grossBasic + otPay + rdPay + shPay + holPay;
-                
-                const sssEE = parseFloat(rec.sssEE) || 0;
-                const phEE = parseFloat(rec.phEE) || 0;
-                const pagibigEE = parseFloat(rec.pagibigEE) || 0;
-                
-                const totalDeductions = manualDeductions + sssEE + phEE + pagibigEE;
-                const calculatedNet = grossEarnings - totalDeductions;
-                
-                db[dept][idx].amount = calculatedNet;
-            }
-
             closeModal('edit'); refresh();
         }
 
-        function removeItem(dept, idx) { if(confirm("Delete record?")) { db[dept].splice(idx,1); refresh(); } }
-        function resetSystem() { if(confirm("Wipe all data?")) { db = JSON.parse(JSON.stringify(DEFAULT_DB)); refresh(); } }
+        function removeItem(dept, idx) {
+            if (confirm("Permanently delete this item?")) { db[dept].splice(idx, 1); refresh(); }
+        }
 
         function saveJSON() {
-            const blob = new Blob([JSON.stringify({ system: db, users: userDb }, null, 2)], { type: 'application/json' });
+            const blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' });
             const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-            a.download = `ULLSWATER_BACKUP_${new Date().toISOString().split('T')[0]}.json`; a.click();
+            a.download = `ULLSWATER_SYSTEM_BACKUP_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
         }
 
         function loadJSON(input) {
+            const file = input.files[0]; if(!file) return;
             const reader = new FileReader();
             reader.onload = (e) => {
                 try {
-                    const parsed = JSON.parse(e.target.result);
-                    if(parsed.system) db = parsed.system;
-                    if(parsed.users) userDb = parsed.users;
-                    saveUsers(); refresh(); alert("System fully restored.");
-                } catch(err) { alert("Invalid structure."); }
+                    const imported = JSON.parse(e.target.result);
+                    if(imported.fleet && imported.finance) { db = imported; refresh(); alert("System state restored successfully."); }
+                } catch(err) { alert("Invalid file structure."); }
             };
-            reader.readAsText(input.files[0]);
+            reader.readAsText(file);
         }
+
+        function resetSystem() {
+            if(confirm("DANGER: WIPE ALL SYSTEMS AND REVERT TO TEMPLATE?")) {
+                db = JSON.parse(JSON.stringify(DEFAULT_DB)); refresh();
+            }
+        }
+
+        function printDept() {
+            document.getElementById('print-dept-name').innerText = currentTab + " Statement Record";
+            document.getElementById('print-date').innerText = getNow();
+            const tabEl = document.getElementById('tab-' + currentTab);
+            tabEl.classList.add('print-target');
+            window.print();
+            tabEl.classList.remove('print-target');
+        }
+
+        // Initialize session on window load
+        window.onload = () => { applyPermissions(); refresh(); };
     </script>
 </body>
 </html>
