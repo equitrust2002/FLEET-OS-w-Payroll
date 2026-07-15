@@ -363,7 +363,7 @@
                     </div>
                 </div>
                 <div>
-                    <label class="text-[10px] font-black text-slate-500 uppercase block mb-2">Other Manual Deductions / Adjustments (₱) notes</label>
+                    <label class="text-[10px] font-black text-slate-500 uppercase block mb-2">Other Manual Deductions / Adjustments (₱) & Additional Adjustments (₱) with notes</label>
                     <div class="space-y-2 border border-slate-100 p-3 rounded-2xl bg-white" id="ps-deductions-container">
                         <div class="grid grid-cols-12 gap-2 items-center text-[10px] font-black uppercase text-slate-400 px-2">
                             <div class="col-span-3">Category Name</div>
@@ -372,6 +372,7 @@
                             <div class="col-span-3">Internal Notes</div>
                             <div class="col-span-2 text-right">Amount</div>
                         </div>
+                        <!-- DEDUCTIONS -->
                         <div class="ps-ded-row grid grid-cols-12 gap-2">
                             <input type="text" class="col-span-3 p-2.5 rounded-xl bg-slate-50 font-bold text-xs ded-category" placeholder="Category 1">
                             <input type="number" oninput="calculateSettlementTotal()" class="col-span-2 p-2.5 rounded-xl bg-slate-50 font-bold text-xs ded-qty" placeholder="0">
@@ -406,6 +407,42 @@
                             <input type="number" oninput="calculateSettlementTotal()" class="col-span-2 p-2.5 rounded-xl bg-slate-50 font-bold text-xs ded-rate" placeholder="0.00">
                             <input type="text" class="col-span-3 p-2.5 rounded-xl bg-slate-50 font-bold text-xs ded-notes" placeholder="Internal notes">
                             <div class="col-span-2 p-2.5 text-right text-xs font-black text-red-600 self-center ded-amount-label">₱0.00</div>
+                        </div>
+                        <!-- ADDITIONAL ADJUSTMENTS -->
+                        <div class="ps-ded-row grid grid-cols-12 gap-2">
+                            <input type="text" class="col-span-3 p-2.5 rounded-xl bg-emerald-50 border-emerald-200 font-bold text-xs ded-category" placeholder="Addition 1">
+                            <input type="number" oninput="calculateSettlementTotal()" class="col-span-2 p-2.5 rounded-xl bg-emerald-50 border-emerald-200 font-bold text-xs ded-qty" placeholder="0">
+                            <input type="number" oninput="calculateSettlementTotal()" class="col-span-2 p-2.5 rounded-xl bg-emerald-50 border-emerald-200 font-bold text-xs ded-rate" placeholder="0.00">
+                            <input type="text" class="col-span-3 p-2.5 rounded-xl bg-emerald-50 border-emerald-200 font-bold text-xs ded-notes" placeholder="Additional notes">
+                            <div class="col-span-2 p-2.5 text-right text-xs font-black text-emerald-600 self-center ded-amount-label">₱0.00</div>
+                        </div>
+                        <div class="ps-ded-row grid grid-cols-12 gap-2">
+                            <input type="text" class="col-span-3 p-2.5 rounded-xl bg-emerald-50 border-emerald-200 font-bold text-xs ded-category" placeholder="Addition 2">
+                            <input type="number" oninput="calculateSettlementTotal()" class="col-span-2 p-2.5 rounded-xl bg-emerald-50 border-emerald-200 font-bold text-xs ded-qty" placeholder="0">
+                            <input type="number" oninput="calculateSettlementTotal()" class="col-span-2 p-2.5 rounded-xl bg-emerald-50 border-emerald-200 font-bold text-xs ded-rate" placeholder="0.00">
+                            <input type="text" class="col-span-3 p-2.5 rounded-xl bg-emerald-50 border-emerald-200 font-bold text-xs ded-notes" placeholder="Additional notes">
+                            <div class="col-span-2 p-2.5 text-right text-xs font-black text-emerald-600 self-center ded-amount-label">₱0.00</div>
+                        </div>
+                        <div class="ps-ded-row grid grid-cols-12 gap-2">
+                            <input type="text" class="col-span-3 p-2.5 rounded-xl bg-emerald-50 border-emerald-200 font-bold text-xs ded-category" placeholder="Addition 3">
+                            <input type="number" oninput="calculateSettlementTotal()" class="col-span-2 p-2.5 rounded-xl bg-emerald-50 border-emerald-200 font-bold text-xs ded-qty" placeholder="0">
+                            <input type="number" oninput="calculateSettlementTotal()" class="col-span-2 p-2.5 rounded-xl bg-emerald-50 border-emerald-200 font-bold text-xs ded-rate" placeholder="0.00">
+                            <input type="text" class="col-span-3 p-2.5 rounded-xl bg-emerald-50 border-emerald-200 font-bold text-xs ded-notes" placeholder="Additional notes">
+                            <div class="col-span-2 p-2.5 text-right text-xs font-black text-emerald-600 self-center ded-amount-label">₱0.00</div>
+                        </div>
+                        <div class="ps-ded-row grid grid-cols-12 gap-2">
+                            <input type="text" class="col-span-3 p-2.5 rounded-xl bg-emerald-50 border-emerald-200 font-bold text-xs ded-category" placeholder="Addition 4">
+                            <input type="number" oninput="calculateSettlementTotal()" class="col-span-2 p-2.5 rounded-xl bg-emerald-50 border-emerald-200 font-bold text-xs ded-qty" placeholder="0">
+                            <input type="number" oninput="calculateSettlementTotal()" class="col-span-2 p-2.5 rounded-xl bg-emerald-50 border-emerald-200 font-bold text-xs ded-rate" placeholder="0.00">
+                            <input type="text" class="col-span-3 p-2.5 rounded-xl bg-emerald-50 border-emerald-200 font-bold text-xs ded-notes" placeholder="Additional notes">
+                            <div class="col-span-2 p-2.5 text-right text-xs font-black text-emerald-600 self-center ded-amount-label">₱0.00</div>
+                        </div>
+                        <div class="ps-ded-row grid grid-cols-12 gap-2">
+                            <input type="text" class="col-span-3 p-2.5 rounded-xl bg-emerald-50 border-emerald-200 font-bold text-xs ded-category" placeholder="Addition 5">
+                            <input type="number" oninput="calculateSettlementTotal()" class="col-span-2 p-2.5 rounded-xl bg-emerald-50 border-emerald-200 font-bold text-xs ded-qty" placeholder="0">
+                            <input type="number" oninput="calculateSettlementTotal()" class="col-span-2 p-2.5 rounded-xl bg-emerald-50 border-emerald-200 font-bold text-xs ded-rate" placeholder="0.00">
+                            <input type="text" class="col-span-3 p-2.5 rounded-xl bg-emerald-50 border-emerald-200 font-bold text-xs ded-notes" placeholder="Additional notes">
+                            <div class="col-span-2 p-2.5 text-right text-xs font-black text-emerald-600 self-center ded-amount-label">₱0.00</div>
                         </div>
                     </div>
                 </div>
@@ -841,6 +878,7 @@
             }
         }
 
+        // Standard function definitions preserved
         function logout() { location.reload(); }
 
         function applyPermissions() {
@@ -912,7 +950,15 @@
                 const rate = parseFloat(row.querySelector('.ded-rate').value) || 0;
                 const amt = qty * rate;
                 row.querySelector('.ded-amount-label').innerText = php(amt);
-                manualDeductions += amt;
+                
+                // Deductions reduce net, Additions (with 'Addition' in their category or emerald fields) add to the gross.
+                const categoryInput = row.querySelector('.ded-category');
+                const isAddition = categoryInput && (categoryInput.placeholder.includes('Addition') || categoryInput.value.toLowerCase().includes('addition') || categoryInput.classList.contains('bg-emerald-50'));
+                if (isAddition) {
+                    manualDeductions -= amt; // subtracted from deductions = added to net
+                } else {
+                    manualDeductions += amt;
+                }
             });
             
             // 2026 Compliant Multiplier Computation Pipeline
@@ -977,8 +1023,13 @@
                 const notes = row.querySelector('.ded-notes').value.trim();
                 const amt = qty * rate;
                 if (category !== "" && amt > 0) {
-                    manualDeductionsList.push({ category, qty, rate, notes, amount: amt });
-                    manualDeductions += amt;
+                    const isAddition = row.querySelector('.ded-category').classList.contains('bg-emerald-50');
+                    manualDeductionsList.push({ category, qty, rate, notes, amount: amt, isAddition: isAddition });
+                    if (isAddition) {
+                        manualDeductions -= amt;
+                    } else {
+                        manualDeductions += amt;
+                    }
                 }
             });
             
@@ -1029,7 +1080,7 @@
                 thMonth: thMonth
             });
             
-            // Reset deduction rows after dispatch
+            // Reset deduction and addition rows after dispatch
             document.querySelectorAll('#ps-deductions-container .ps-ded-row').forEach(row => {
                 row.querySelector('.ded-category').value = '';
                 row.querySelector('.ded-qty').value = '';
@@ -1041,7 +1092,7 @@
             closeModal('payroll-settlement');
             refresh();
             
-            // Print the newly posted settlement slip directly from index
+            // Print newly posted settlement slip
             printTicket(db.finance.length - 1);
         }
 
@@ -1305,12 +1356,12 @@
                         <p>Legal Holiday Multiplier (2.00x): ${holHrs} (${php(holPay)})</p>
                         <p style="font-weight:bold;">GROSS PERIOD EARNINGS: ${php(grossEarnings)}</p>
                         <hr style="border-top:1px dashed #000; margin: 5px 0;">
-                        <p style="font-size:9px; text-decoration: underline;">STATUTORY REMITTANCES & MANUAL DEDUCTIONS</p>
+                        <p style="font-size:9px; text-decoration: underline;">STATUTORY REMITTANCES & MANUAL ADJUSTMENTS</p>
                         <p>SSS Contribution: ${php(sssEE)} / ER: ${php(sssER)}</p>
                         <p>PhilHealth Contribution: ${php(phEE)} / ER: ${php(phER)}</p>
                         <p>Pag-IBIG Contribution: ${php(pagibigEE)} / ER: ${php(pagibigER)}</p>
                         ${(data.manualDeductionsList && data.manualDeductionsList.length > 0) ? 
-                            data.manualDeductionsList.map(d => `<p style="padding-left:10px;">- ${d.category} (x${d.qty} @ ${php(d.rate)}): -${php(d.amount)} ${d.notes ? `[${d.notes}]` : ''}</p>`).join('') :
+                            data.manualDeductionsList.map(d => `<p style="padding-left:10px;">- ${d.category} (x${d.qty} @ ${php(d.rate)}): ${d.isAddition ? '+' : '-'}${php(d.amount)} ${d.notes ? `[${d.notes}]` : ''}</p>`).join('') :
                             `<p>Manual Adjustments/Deductions: -${php(manualDeductions)}</p>`
                         }
                         <p class="text-green-700">13th Month Accrual Asset: +${php(thMonth)}</p>
@@ -1531,8 +1582,14 @@
             tabEl.classList.remove('print-target');
         }
 
-        // Initialize state
-        refresh();
+        window.onload = () => {
+            // Check session
+            if (activeUser) {
+                document.getElementById('login-overlay').style.display = 'none';
+                applyPermissions();
+            }
+            refresh();
+        }
     </script>
 </body>
 </html>
