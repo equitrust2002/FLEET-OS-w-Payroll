@@ -1,0 +1,1502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Fleet OS Apex v10.8 | Ullswater Corporation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; -webkit-tap-highlight-color: transparent; background-color: #F8FAFC; color: #0F172A; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: slideUp 0.2s ease-out; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .nav-active { background: #2563eb !important; color: white !important; box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.4); }
+        .btn-press:active { transform: scale(0.96); opacity: 0.9; }
+        input, select, textarea { font-size: 16px !important; border: 1px solid #E2E8F0 !important; outline: none; transition: all 0.2s; }
+        
+        #login-overlay { position: fixed; inset: 0; z-index: 9999; background: #0f172a; display: flex; align-items: center; justify-content: center; }
+
+        @media print {
+            aside, header, .no-print, .actions-cell { display: none !important; }
+            main, body { overflow: visible !important; height: auto !important; display: block !important; padding: 0 !important; }
+            .tab-content { display: none !important; }
+            .tab-content.print-target { display: block !important; opacity: 1 !important; }
+            .print-header { display: block !important; margin-bottom: 2rem; border-bottom: 3px solid #000; padding-bottom: 1rem; }
+            
+            .receipt-print-only {
+                display: block !important;
+                width: 80mm;
+                margin: 0 auto;
+                padding: 10px;
+                color: black !important;
+                font-family: 'Courier New', Courier, monospace;
+            }
+            .print-signature-block {
+                display: flex !important;
+                justify-content: space-between;
+                margin-top: 50px;
+                border-top: 1px solid #ddd;
+                padding-top: 20px;
+            }
+        }
+        .print-header, .print-signature-block { display: none; }
+        .admin-only, .editor-only { display: none; }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden">
+
+    <!-- LOGIN SYSTEM -->
+    <div id="login-overlay">
+        <div class="bg-white p-10 rounded-[2.5rem] shadow-2xl w-full max-w-md border border-slate-200">
+            <div class="text-center mb-8">
+                <div class="bg-blue-600 w-16 h-16 rounded-2xl flex items-center justify-center text-white mx-auto mb-4"><i data-lucide="shield-check"></i></div>
+                <h2 class="text-2xl font-black uppercase tracking-tighter">Terminal Access</h2>
+            </div>
+            <div class="space-y-4">
+                <input type="text" id="user-input" class="w-full p-4 rounded-xl bg-slate-50 font-bold" placeholder="Username">
+                <input type="password" id="pass-input" class="w-full p-4 rounded-xl bg-slate-50 font-bold" placeholder="Password">
+                <button onclick="attemptLogin()" class="w-full bg-slate-900 text-white py-4 rounded-xl font-black text-xs uppercase tracking-widest shadow-xl">Login</button>
+            </div>
+            <p id="login-err" class="text-red-500 text-[10px] font-bold text-center mt-4 hidden">INVALID CREDENTIALS</p>
+        </div>
+    </div>
+
+    <aside class="hidden md:flex w-72 bg-slate-950 text-slate-400 flex-col z-50 no-print">
+        <div class="p-8 text-white font-extrabold flex items-center gap-3 border-b border-slate-800/50">
+            <div class="bg-blue-600 p-2 rounded-xl text-white shadow-lg"><i data-lucide="shield"></i></div>
+            <div class="flex flex-col uppercase">
+                <span class="text-sm tracking-widest leading-none text-blue-400">Ullswater</span>
+                <span class="text-xl font-black tracking-tighter">Corporation</span>
+            </div>
+        </div>
+        
+        <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+            <button onclick="switchTab('dashboard')" id="nav-dashboard" class="w-full flex items-center gap-4 p-4 rounded-2xl transition nav-active"><i data-lucide="layout-dashboard"></i> <span class="font-bold">Executive Board</span></button>
+            <button onclick="switchTab('fleet')" id="nav-fleet" class="w-full flex items-center gap-4 p-4 rounded-2xl transition hover:text-white"><i data-lucide="truck"></i> <span class="font-bold">Unit Performance</span></button>
+            <button onclick="switchTab('logistics')" id="nav-logistics" class="w-full flex items-center gap-4 p-4 rounded-2xl transition hover:text-white"><i data-lucide="navigation"></i> <span class="font-bold">Logistics Dept</span></button>
+            <button onclick="switchTab('staff')" id="nav-staff" class="w-full flex items-center gap-4 p-4 rounded-2xl transition hover:text-white"><i data-lucide="users"></i> <span class="font-bold">Staff & Payroll</span></button>
+            <button onclick="switchTab('inventory')" id="nav-inventory" class="w-full flex items-center gap-4 p-4 rounded-2xl transition hover:text-white"><i data-lucide="package"></i> <span class="font-bold">Parts & Supply</span></button>
+            <button onclick="switchTab('motorpool')" id="nav-motorpool" class="w-full flex items-center gap-4 p-4 rounded-2xl transition hover:text-white"><i data-lucide="wrench"></i> <span class="font-bold">Motorpool Logs</span></button>
+            <button onclick="switchTab('po')" id="nav-po" class="w-full flex items-center gap-4 p-4 rounded-2xl transition hover:text-white"><i data-lucide="file-text"></i> <span class="font-bold">Purchase Orders</span></button>
+            <button onclick="switchTab('finance')" id="nav-finance" class="w-full flex items-center gap-4 p-4 rounded-2xl transition hover:text-white"><i data-lucide="credit-card"></i> <span class="font-bold">Unified Ledger</span></button>
+            <button onclick="switchTab('users')" id="nav-users" class="admin-only w-full flex items-center gap-4 p-4 rounded-2xl transition hover:text-white text-blue-400"><i data-lucide="user-cog"></i> <span class="font-bold">User Access</span></button>
+        </nav>
+
+        <div class="p-4 bg-slate-900/50 m-4 rounded-2xl space-y-2 border border-slate-800">
+            <p id="display-user" class="text-[10px] text-center font-black text-slate-500 uppercase mb-2"></p>
+            <button onclick="saveJSON()" class="w-full flex items-center gap-3 p-3 hover:bg-blue-600 rounded-xl text-white text-[10px] font-black transition uppercase italic">
+                <i data-lucide="download" class="w-4 h-4"></i> Backup System (JSON)
+            </button>
+            <label class="editor-only w-full flex items-center gap-3 p-3 hover:bg-slate-800 rounded-xl text-white text-[10px] font-black transition uppercase cursor-pointer italic">
+                <i data-lucide="upload" class="w-4 h-4 text-green-400"></i> Restore System (JSON)
+                <input type="file" id="load-file" class="hidden" onchange="loadJSON(this)">
+            </label>
+            <button onclick="resetSystem()" class="admin-only w-full flex items-center gap-3 p-3 hover:bg-red-900/20 rounded-xl text-red-500 text-[10px] font-black transition uppercase">
+                <i data-lucide="refresh-ccw" class="w-4 h-4"></i> Wipe All Data
+            </button>
+            <button onclick="logout()" class="w-full flex items-center gap-3 p-3 hover:bg-slate-800 rounded-xl text-slate-400 text-[10px] font-black transition uppercase">
+                <i data-lucide="log-out" class="w-4 h-4"></i> Logout
+            </button>
+        </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col overflow-hidden">
+        <header class="h-20 bg-white border-b px-6 flex items-center justify-between no-print">
+            <h1 id="tab-title" class="text-lg font-black text-slate-800 uppercase tracking-widest italic">Executive Board</h1>
+            <div class="flex gap-2">
+                <div class="relative group">
+                    <button class="bg-slate-900 text-white px-4 py-2.5 rounded-xl font-black text-[10px] uppercase shadow-lg">Data Tools</button>
+                    <div class="absolute right-0 mt-2 w-48 bg-white border rounded-2xl shadow-xl hidden group-hover:block z-[60]">
+                        <button onclick="exportCSV()" class="w-full text-left p-4 hover:bg-slate-50 text-[10px] font-black uppercase border-b">Export CSV (Excel-Ready)</button>
+                        <label class="editor-only w-full block p-4 hover:bg-slate-50 text-[10px] font-black uppercase cursor-pointer">
+                            Import CSV (Update)
+                            <input type="file" id="csv-import" class="hidden" onchange="importCSV(this)">
+                        </label>
+                    </div>
+                </div>
+                <button onclick="printDept()" class="bg-indigo-100 text-indigo-700 px-4 py-2.5 rounded-xl font-black text-[10px] uppercase border border-indigo-200">Print Ledger</button>
+                <button onclick="openModal('po')" class="editor-only bg-blue-900 text-white px-5 py-2.5 rounded-xl font-black text-[10px] uppercase shadow-lg">+ New Order (PO)</button>
+                <button onclick="openModal('payroll-settlement')" class="editor-only bg-purple-700 text-white px-5 py-2.5 rounded-xl font-black text-[10px] uppercase shadow-lg">+ Settlement</button>
+                <button onclick="openModal('exp')" class="editor-only bg-red-600 text-white px-5 py-2.5 rounded-xl font-black text-[10px] uppercase shadow-lg">+ Expense</button>
+                <button onclick="openModal('rev')" class="editor-only bg-green-600 text-white px-5 py-2.5 rounded-xl font-black text-[10px] uppercase shadow-lg">+ Income</button>
+                <button onclick="openModal('staff')" class="editor-only bg-blue-600 text-white px-5 py-2.5 rounded-xl font-black text-[10px] uppercase shadow-lg">+ Staff</button>
+                <button onclick="openModal('reg')" class="editor-only bg-slate-800 text-white px-5 py-2.5 rounded-xl font-black text-[10px] uppercase shadow-lg">+ Asset</button>
+            </div>
+        </header>
+
+        <section class="flex-1 overflow-y-auto p-4 md:p-8 space-y-6">
+            
+            <div class="print-header">
+                <h1 class="text-2xl font-black uppercase tracking-tighter">ULLSWATER CORPORATION</h1>
+                <p id="print-dept-name" class="text-blue-600 font-bold uppercase text-sm tracking-widest italic"></p>
+                <p class="text-slate-500 text-[10px] mt-1">Generated: <span id="print-date"></span></p>
+            </div>
+
+            <!-- DASHBOARD -->
+            <div id="tab-dashboard" class="tab-content active">
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-white p-6 rounded-3xl border shadow-sm"><p class="text-green-600 text-[10px] font-black uppercase">Revenue</p><h2 id="d-rev" class="text-2xl font-black">₱0.00</h2></div>
+                    <div class="bg-white p-6 rounded-3xl border shadow-sm"><p class="text-red-500 text-[10px] font-black uppercase">Direct Costs</p><h2 id="d-pay" class="text-2xl font-black">₱0.00</h2></div>
+                    <div class="bg-slate-900 p-6 rounded-3xl text-white shadow-xl"><p class="text-blue-400 text-[10px] font-black uppercase">Net Margin</p><h2 id="d-margin" class="text-2xl font-black">₱0.00</h2></div>
+                    <div class="bg-white p-6 rounded-3xl border shadow-sm"><p class="text-slate-400 text-[10px] font-black uppercase">Total Staffing</p><h2 id="d-labor" class="text-2xl font-black">₱0.00</h2></div>
+                </div>
+            </div>
+
+            <!-- FLEET -->
+            <div id="tab-fleet" class="tab-content">
+                <div class="bg-white p-6 rounded-3xl border shadow-sm mb-6 flex flex-wrap gap-4 items-center no-print">
+                    <div class="flex flex-col">
+                        <label class="text-[10px] font-black text-slate-400 uppercase mb-1">Coverage From</label>
+                        <input type="datetime-local" id="fleet-filter-from" onchange="refresh()" class="p-3 rounded-xl bg-slate-50 font-bold text-xs">
+                    </div>
+                    <div class="flex flex-col">
+                        <label class="text-[10px] font-black text-slate-400 uppercase mb-1">Coverage To</label>
+                        <input type="datetime-local" id="fleet-filter-to" onchange="refresh()" class="p-3 rounded-xl bg-slate-50 font-bold text-xs">
+                    </div>
+                    <div class="flex items-end h-full pt-5">
+                        <button onclick="document.getElementById('fleet-filter-from').value=''; document.getElementById('fleet-filter-to').value=''; refresh();" class="bg-slate-100 text-slate-700 px-4 py-3 rounded-xl font-black text-[10px] uppercase">Reset Period</button>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-3xl border shadow-sm overflow-hidden">
+                    <table class="w-full text-left">
+                        <thead class="bg-slate-50 text-[10px] font-black uppercase text-slate-400">
+                            <tr><th class="p-6">Unit ID / Timestamp</th><th class="p-6">Income</th><th class="p-6">Expense/Maint</th><th class="p-6">Personnel</th><th class="p-6">Net</th><th class="p-6 text-center no-print">Actions</th></tr>
+                        </thead>
+                        <tbody id="list-fleet" class="divide-y text-sm font-bold"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- LOGISTICS -->
+            <div id="tab-logistics" class="tab-content">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div class="bg-white p-8 rounded-[2.5rem] border shadow-sm">
+                        <h3 class="font-black text-sm uppercase text-blue-600 mb-4 italic">Dispatch & Hauling Metrics</h3>
+                        <p class="text-xs text-slate-400 mb-6">Aggregate data for logistics operations and fleet movement.</p>
+                        <div id="logistics-stats" class="grid grid-cols-2 gap-4">
+                            <div class="bg-slate-50 p-4 rounded-2xl"><p class="text-[10px] font-black uppercase">Active Units</p><h4 id="l-active" class="text-xl font-black">0</h4></div>
+                            <div class="bg-slate-50 p-4 rounded-2xl"><p class="text-[10px] font-black uppercase">Total Personnel</p><h4 id="l-staff" class="text-xl font-black">0</h4></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STAFF -->
+            <div id="tab-staff" class="tab-content">
+                <div class="bg-white rounded-3xl border shadow-sm overflow-hidden">
+                    <table class="w-full text-left">
+                        <thead class="bg-indigo-900 text-white text-[10px] font-black uppercase">
+                            <tr><th class="p-6">Employee / Dept</th><th class="p-6">Role</th><th class="p-6">Assigned Unit</th><th class="p-6">Salary (₱)</th><th class="p-6 text-center no-print">Actions</th></tr>
+                        </thead>
+                        <tbody id="list-staff" class="divide-y text-sm font-bold"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- INVENTORY -->
+            <div id="tab-inventory" class="tab-content">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="editor-only bg-white p-8 rounded-[2.5rem] border shadow-sm no-print">
+                        <h3 class="font-black text-sm uppercase text-blue-600 mb-4 italic">Stock Entry</h3>
+                        <div class="space-y-3">
+                            <input type="text" id="i-name" placeholder="Item Name" class="w-full p-4 rounded-xl bg-slate-50 font-bold">
+                            <input type="number" id="i-qty" placeholder="Quantity" class="w-full p-4 rounded-xl bg-slate-50 font-bold">
+                            <input type="number" id="i-cost" placeholder="Unit Cost (₱)" class="w-full p-4 rounded-xl bg-slate-50 font-bold">
+                            <button onclick="doStock()" class="w-full bg-slate-900 text-white py-4 rounded-xl font-black text-[10px] uppercase shadow-lg">Register Supply</button>
+                        </div>
+                    </div>
+                    <div class="lg:col-span-2 bg-white rounded-[2.5rem] border shadow-sm overflow-hidden">
+                        <table class="w-full text-left">
+                            <thead class="bg-slate-50 text-[10px] font-black uppercase text-slate-400">
+                                <tr><th class="p-6">Supply Item / Last Restock</th><th class="p-6">In-Stock</th><th class="p-6 text-right">Value</th><th class="p-6 text-center no-print">Actions</th></tr>
+                            </thead>
+                            <tbody id="list-inventory" class="divide-y text-sm font-bold"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MOTORPOOL -->
+            <div id="tab-motorpool" class="tab-content">
+                <div class="lg:grid lg:grid-cols-3 gap-6">
+                    <div class="editor-only bg-white p-8 rounded-[2.5rem] border shadow-sm no-print">
+                        <h3 class="font-black text-sm uppercase text-red-600 mb-4 italic">Mechanical Job Order</h3>
+                        <div class="space-y-3">
+                            <select id="m-unit" class="w-full p-4 rounded-xl bg-slate-50 font-bold"></select>
+                            <select id="m-part-idx" class="w-full p-4 rounded-xl bg-slate-50 font-bold"></select>
+                            <input type="number" id="m-part-qty" placeholder="Part Quantity Used" class="w-full p-4 rounded-xl bg-slate-50 font-bold">
+                            <textarea id="m-jobs" placeholder="Mechanic notes..." class="w-full p-4 rounded-xl bg-slate-50 h-24 font-bold"></textarea>
+                            <button onclick="doJobOrder()" class="w-full bg-red-600 text-white py-4 rounded-xl font-black text-[10px] uppercase shadow-lg italic">Post Service Log</button>
+                        </div>
+                    </div>
+                    <div class="lg:col-span-2 space-y-4" id="list-maint"></div>
+                </div>
+            </div>
+
+            <!-- PURCHASE ORDER TAB -->
+            <div id="tab-po" class="tab-content">
+                <div class="bg-white rounded-3xl border shadow-sm overflow-hidden">
+                    <table class="w-full text-left">
+                        <thead class="bg-blue-900 text-white text-[10px] font-black uppercase">
+                            <tr><th class="p-6">PO Number / Date</th><th class="p-6">Vendor</th><th class="p-6">Particulars</th><th class="p-6">Unit</th><th class="p-6 text-right">Total Amount</th><th class="p-6 text-center no-print">Actions</th></tr>
+                        </thead>
+                        <tbody id="list-po" class="divide-y text-sm font-bold"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- FINANCE -->
+            <div id="tab-finance" class="tab-content">
+                <div class="bg-white rounded-3xl border shadow-sm overflow-hidden">
+                    <table class="w-full text-left">
+                        <thead class="bg-slate-950 text-white text-[10px] font-black uppercase">
+                            <tr><th class="p-6">Date & Time</th><th class="p-6">Unit</th><th class="p-6">Transaction</th><th class="p-6">Description</th><th class="p-6 text-right">Amount</th><th class="p-6 text-center no-print">Actions</th></tr>
+                        </thead>
+                        <tbody id="list-finance" class="divide-y text-sm font-bold"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- SIGNATURE BLOCK -->
+            <div class="print-signature-block">
+                <div class="w-1/3 text-center">
+                    <div class="border-b border-black mb-1 mx-auto w-4/5 h-10"></div>
+                    <p class="text-[10px] font-black uppercase">Prepared/Requested By</p>
+                </div>
+                <div class="w-1/3 text-center">
+                    <div class="border-b border-black mb-1 mx-auto w-4/5 h-10"></div>
+                    <p class="text-[10px] font-black uppercase">Received By</p>
+                </div>
+                <div class="w-1/3 text-center">
+                    <div class="border-b border-black mb-1 mx-auto w-4/5 h-10"></div>
+                    <p class="text-[10px] font-black uppercase">Approved For Payment</p>
+                </div>
+            </div>
+
+            <!-- USER ACCESS -->
+            <div id="tab-users" class="tab-content">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="bg-white p-8 rounded-[2.5rem] border shadow-sm">
+                        <h3 class="font-black text-sm uppercase text-blue-600 mb-4 italic">Create New User</h3>
+                        <div class="space-y-3">
+                            <input type="text" id="nu-name" placeholder="Username" class="w-full p-4 rounded-xl bg-slate-50 font-bold">
+                            <input type="password" id="nu-pass" placeholder="Password" class="w-full p-4 rounded-xl bg-slate-50 font-bold">
+                            <select id="nu-role" class="w-full p-4 rounded-xl bg-slate-50 font-bold">
+                                <option value="admin">Administrator (Full Control)</option>
+                                <option value="editor">Editor (Add/Edit Data)</option>
+                                <option value="viewer">Viewer (Read-Only)</option>
+                            </select>
+                            <button onclick="addUser()" class="w-full bg-slate-900 text-white py-4 rounded-xl font-black text-[10px] uppercase shadow-lg">Generate Access</button>
+                        </div>
+                    </div>
+                    <div class="lg:col-span-2 bg-white rounded-[2.5rem] border shadow-sm overflow-hidden">
+                        <table class="w-full text-left">
+                            <thead class="bg-blue-600 text-white text-[10px] font-black uppercase">
+                                <tr><th class="p-6">Username</th><th class="p-6">Permission</th><th class="p-6 text-center">Remove Access</th></tr>
+                            </thead>
+                            <tbody id="list-users" class="divide-y text-sm font-bold"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- MODALS -->
+
+    <!-- PAYROLL SETTLEMENT COMPLIANT MODAL -->
+    <div id="modal-payroll-settlement" class="hidden fixed inset-0 bg-slate-900/90 z-[100] flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-2xl rounded-3xl p-8 shadow-2xl overflow-y-auto max-h-[90vh]">
+            <div class="flex items-center gap-3 mb-4 border-b pb-4">
+                <div class="bg-purple-600 p-2 rounded-xl text-white shadow-lg"><i data-lucide="award"></i></div>
+                <div>
+                    <h2 class="text-xl font-black uppercase text-purple-900 italic">Payroll Settlement</h2>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Official Verification Module 1 (2026 Regulatory Compliant)</p>
+                </div>
+            </div>
+            <div class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-[10px] font-black text-slate-400 uppercase block mb-1">Settlement Period From</label>
+                        <input type="date" id="ps-from-date" class="w-full p-4 rounded-xl bg-slate-50 font-bold text-xs">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-black text-slate-400 uppercase block mb-1">Settlement Period To</label>
+                        <input type="date" id="ps-to-date" class="w-full p-4 rounded-xl bg-slate-50 font-bold text-xs">
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-[10px] font-black text-slate-400 uppercase block mb-1">Target Personnel</label>
+                        <select id="ps-staff-select" class="w-full p-4 rounded-xl bg-slate-50 font-bold text-xs" onchange="autoFillPsRate()"></select>
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-black text-slate-400 uppercase block mb-1">Base Calculation Rate (₱/hr)</label>
+                        <input type="number" id="ps-rate-display" class="w-full p-4 rounded-xl bg-slate-50 font-bold text-xs" placeholder="0.00" oninput="calculateSettlementTotal()">
+                    </div>
+                </div>
+                <hr class="border-slate-100">
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+                    <div>
+                        <label class="text-[9px] font-black text-slate-400 uppercase block mb-1">Regular Hours</label>
+                        <input type="number" id="ps-hrs-reg" oninput="calculateSettlementTotal()" class="w-full p-3 rounded-xl bg-slate-50 font-bold text-xs" value="0">
+                    </div>
+                    <div>
+                        <label class="text-[9px] font-black text-slate-400 uppercase block mb-1">OT Hours (1.25x)</label>
+                        <input type="number" id="ps-hrs-ot" oninput="calculateSettlementTotal()" class="w-full p-3 rounded-xl bg-slate-50 font-bold text-xs" value="0">
+                    </div>
+                    <div>
+                        <label class="text-[9px] font-black text-slate-400 uppercase block mb-1">Rest Day (1.30x)</label>
+                        <input type="number" id="ps-hrs-rd" oninput="calculateSettlementTotal()" class="w-full p-3 rounded-xl bg-slate-50 font-bold text-xs" value="0">
+                    </div>
+                    <div>
+                        <label class="text-[9px] font-black text-slate-400 uppercase block mb-1">Spl Hol (1.30x)</label>
+                        <input type="number" id="ps-hrs-sh" oninput="calculateSettlementTotal()" class="w-full p-3 rounded-xl bg-slate-50 font-bold text-xs" value="0">
+                    </div>
+                    <div>
+                        <label class="text-[9px] font-black text-slate-400 uppercase block mb-1">Legal Hol (2.00x)</label>
+                        <input type="number" id="ps-hrs-hol" oninput="calculateSettlementTotal()" class="w-full p-3 rounded-xl bg-slate-50 font-bold text-xs" value="0">
+                    </div>
+                </div>
+                <div>
+                    <label class="text-[10px] font-black text-slate-500 uppercase block mb-2">Other Manual Deductions / Adjustments (₱) notes</label>
+                    <div class="space-y-2 border border-slate-100 p-3 rounded-2xl bg-white" id="ps-deductions-container">
+                        <div class="grid grid-cols-12 gap-2 items-center text-[10px] font-black uppercase text-slate-400 px-2">
+                            <div class="col-span-3">Category Name</div>
+                            <div class="col-span-2">Qty</div>
+                            <div class="col-span-2">Rate</div>
+                            <div class="col-span-3">Internal Notes</div>
+                            <div class="col-span-2 text-right">Amount</div>
+                        </div>
+                        <div class="ps-ded-row grid grid-cols-12 gap-2">
+                            <input type="text" class="col-span-3 p-2.5 rounded-xl bg-slate-50 font-bold text-xs ded-category" placeholder="Category 1">
+                            <input type="number" oninput="calculateSettlementTotal()" class="col-span-2 p-2.5 rounded-xl bg-slate-50 font-bold text-xs ded-qty" placeholder="0">
+                            <input type="number" oninput="calculateSettlementTotal()" class="col-span-2 p-2.5 rounded-xl bg-slate-50 font-bold text-xs ded-rate" placeholder="0.00">
+                            <input type="text" class="col-span-3 p-2.5 rounded-xl bg-slate-50 font-bold text-xs ded-notes" placeholder="Internal notes">
+                            <div class="col-span-2 p-2.5 text-right text-xs font-black text-red-600 self-center ded-amount-label">₱0.00</div>
+                        </div>
+                        <div class="ps-ded-row grid grid-cols-12 gap-2">
+                            <input type="text" class="col-span-3 p-2.5 rounded-xl bg-slate-50 font-bold text-xs ded-category" placeholder="Category 2">
+                            <input type="number" oninput="calculateSettlementTotal()" class="col-span-2 p-2.5 rounded-xl bg-slate-50 font-bold text-xs ded-qty" placeholder="0">
+                            <input type="number" oninput="calculateSettlementTotal()" class="col-span-2 p-2.5 rounded-xl bg-slate-50 font-bold text-xs ded-rate" placeholder="0.00">
+                            <input type="text" class="col-span-3 p-2.5 rounded-xl bg-slate-50 font-bold text-xs ded-notes" placeholder="Internal notes">
+                            <div class="col-span-2 p-2.5 text-right text-xs font-black text-red-600 self-center ded-amount-label">₱0.00</div>
+                        </div>
+                        <div class="ps-ded-row grid grid-cols-12 gap-2">
+                            <input type="text" class="col-span-3 p-2.5 rounded-xl bg-slate-50 font-bold text-xs ded-category" placeholder="Category 3">
+                            <input type="number" oninput="calculateSettlementTotal()" class="col-span-2 p-2.5 rounded-xl bg-slate-50 font-bold text-xs ded-qty" placeholder="0">
+                            <input type="number" oninput="calculateSettlementTotal()" class="col-span-2 p-2.5 rounded-xl bg-slate-50 font-bold text-xs ded-rate" placeholder="0.00">
+                            <input type="text" class="col-span-3 p-2.5 rounded-xl bg-slate-50 font-bold text-xs ded-notes" placeholder="Internal notes">
+                            <div class="col-span-2 p-2.5 text-right text-xs font-black text-red-600 self-center ded-amount-label">₱0.00</div>
+                        </div>
+                        <div class="ps-ded-row grid grid-cols-12 gap-2">
+                            <input type="text" class="col-span-3 p-2.5 rounded-xl bg-slate-50 font-bold text-xs ded-category" placeholder="Category 4">
+                            <input type="number" oninput="calculateSettlementTotal()" class="col-span-2 p-2.5 rounded-xl bg-slate-50 font-bold text-xs ded-qty" placeholder="0">
+                            <input type="number" oninput="calculateSettlementTotal()" class="col-span-2 p-2.5 rounded-xl bg-slate-50 font-bold text-xs ded-rate" placeholder="0.00">
+                            <input type="text" class="col-span-3 p-2.5 rounded-xl bg-slate-50 font-bold text-xs ded-notes" placeholder="Internal notes">
+                            <div class="col-span-2 p-2.5 text-right text-xs font-black text-red-600 self-center ded-amount-label">₱0.00</div>
+                        </div>
+                        <div class="ps-ded-row grid grid-cols-12 gap-2">
+                            <input type="text" class="col-span-3 p-2.5 rounded-xl bg-slate-50 font-bold text-xs ded-category" placeholder="Category 5">
+                            <input type="number" oninput="calculateSettlementTotal()" class="col-span-2 p-2.5 rounded-xl bg-slate-50 font-bold text-xs ded-qty" placeholder="0">
+                            <input type="number" oninput="calculateSettlementTotal()" class="col-span-2 p-2.5 rounded-xl bg-slate-50 font-bold text-xs ded-rate" placeholder="0.00">
+                            <input type="text" class="col-span-3 p-2.5 rounded-xl bg-slate-50 font-bold text-xs ded-notes" placeholder="Internal notes">
+                            <div class="col-span-2 p-2.5 text-right text-xs font-black text-red-600 self-center ded-amount-label">₱0.00</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-slate-50 p-4 rounded-2xl border text-xs font-bold text-slate-600 space-y-1">
+                    <div class="flex justify-between"><span>SSS Bimonthly Contribution Allocation (5%):</span><span id="lbl-sss">₱0.00</span></div>
+                    <div class="flex justify-between"><span>PhilHealth Bimonthly Allocation (2.5%):</span><span id="lbl-ph">₱0.00</span></div>
+                    <div class="flex justify-between"><span>Pag-IBIG Bimonthly Allocation (Fixed Cap):</span><span id="lbl-pagibig">₱0.00</span></div>
+                    <div class="flex justify-between text-green-600"><span>13th Month Bimonthly Accrual Value:</span><span id="lbl-13th">₱0.00</span></div>
+                </div>
+                <div class="flex justify-between items-center bg-slate-900 text-white p-4 rounded-2xl mt-4">
+                    <span class="text-xs font-black uppercase tracking-wider">Net Settlement Amount:</span>
+                    <span id="ps-grand-total" class="text-xl font-black text-purple-400">₱0.00</span>
+                </div>
+            </div>
+            <div class="flex gap-3 mt-8">
+                <button onclick="closeModal('payroll-settlement')" class="flex-1 py-4 font-black text-[10px] bg-slate-100 rounded-xl uppercase">Cancel</button>
+                <button onclick="executeOfficialSettlement()" class="flex-1 py-4 font-black text-[10px] bg-purple-700 text-white rounded-xl uppercase shadow-lg">Post & Print Slip</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- PO MODAL -->
+    <div id="modal-po" class="hidden fixed inset-0 bg-slate-900/90 z-[100] flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-2xl rounded-3xl p-8 shadow-2xl overflow-y-auto max-h-[90vh]">
+            <h2 class="text-xl font-black uppercase mb-6 text-blue-900 italic">Generate Purchase Order</h2>
+            <div class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                        <label class="text-[10px] font-black text-slate-400 uppercase block mb-1">Transaction Date</label>
+                        <input type="datetime-local" id="po-date" class="w-full p-4 rounded-xl bg-slate-50 font-bold">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-black text-slate-400 uppercase block mb-1">Supplier / Vendor Name</label>
+                        <input type="text" id="po-vendor" placeholder="Vendor Name" class="w-full p-4 rounded-xl bg-slate-50 font-bold">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-black text-slate-400 uppercase block mb-1">Target Asset Unit</label>
+                        <select id="po-unit" class="w-full p-4 rounded-xl bg-slate-50 font-bold"></select>
+                    </div>
+                </div>
+
+                <hr class="border-slate-100 my-2">
+                <label class="text-[10px] font-black text-slate-500 uppercase block">Line Items Matrix (Up to 5 items)</label>
+                
+                <div class="space-y-2" id="po-items-container">
+                    <div class="grid grid-cols-12 gap-2 items-center text-[11px] font-black uppercase text-slate-400 px-2">
+                        <div class="col-span-6">Description / Particulars</div>
+                        <div class="col-span-2">Qty</div>
+                        <div class="col-span-2">Price (₱)</div>
+                        <div class="col-span-2 text-right">Amount</div>
+                    </div>
+                    <div class="po-row grid grid-cols-12 gap-2">
+                        <input type="text" class="col-span-6 p-3 rounded-xl bg-slate-50 font-bold text-xs item-desc" placeholder="Item Row 1 Description">
+                        <input type="number" oninput="computeRowAmount(this)" class="col-span-2 p-3 rounded-xl bg-slate-50 font-bold text-xs item-qty" placeholder="0">
+                        <input type="number" oninput="computeRowAmount(this)" class="col-span-2 p-3 rounded-xl bg-slate-50 font-bold text-xs item-price" placeholder="0.00">
+                        <div class="col-span-2 p-3 text-right text-xs font-black text-slate-700 self-center item-amount-label">₱0.00</div>
+                    </div>
+                    <div class="po-row grid grid-cols-12 gap-2">
+                        <input type="text" class="col-span-6 p-3 rounded-xl bg-slate-50 font-bold text-xs item-desc" placeholder="Item Row 2 Description">
+                        <input type="number" oninput="computeRowAmount(this)" class="col-span-2 p-3 rounded-xl bg-slate-50 font-bold text-xs item-qty" placeholder="0">
+                        <input type="number" oninput="computeRowAmount(this)" class="col-span-2 p-3 rounded-xl bg-slate-50 font-bold text-xs item-price" placeholder="0.00">
+                        <div class="col-span-2 p-3 text-right text-xs font-black text-slate-700 self-center item-amount-label">₱0.00</div>
+                    </div>
+                    <div class="po-row grid grid-cols-12 gap-2">
+                        <input type="text" class="col-span-6 p-3 rounded-xl bg-slate-50 font-bold text-xs item-desc" placeholder="Item Row 3 Description">
+                        <input type="number" oninput="computeRowAmount(this)" class="col-span-2 p-3 rounded-xl bg-slate-50 font-bold text-xs item-qty" placeholder="0">
+                        <input type="number" oninput="computeRowAmount(this)" class="col-span-2 p-3 rounded-xl bg-slate-50 font-bold text-xs item-price" placeholder="0.00">
+                        <div class="col-span-2 p-3 text-right text-xs font-black text-slate-700 self-center item-amount-label">₱0.00</div>
+                    </div>
+                    <div class="po-row grid grid-cols-12 gap-2">
+                        <input type="text" class="col-span-6 p-3 rounded-xl bg-slate-50 font-bold text-xs item-desc" placeholder="Item Row 4 Description">
+                        <input type="number" oninput="computeRowAmount(this)" class="col-span-2 p-3 rounded-xl bg-slate-50 font-bold text-xs item-qty" placeholder="0">
+                        <input type="number" oninput="computeRowAmount(this)" class="col-span-2 p-3 rounded-xl bg-slate-50 font-bold text-xs item-price" placeholder="0.00">
+                        <div class="col-span-2 p-3 text-right text-xs font-black text-slate-700 self-center item-amount-label">₱0.00</div>
+                    </div>
+                    <div class="po-row grid grid-cols-12 gap-2">
+                        <input type="text" class="col-span-6 p-3 rounded-xl bg-slate-50 font-bold text-xs item-desc" placeholder="Item Row 5 Description">
+                        <input type="number" oninput="computeRowAmount(this)" class="col-span-2 p-3 rounded-xl bg-slate-50 font-bold text-xs item-qty" placeholder="0">
+                        <input type="number" oninput="computeRowAmount(this)" class="col-span-2 p-3 rounded-xl bg-slate-50 font-bold text-xs item-price" placeholder="0.00">
+                        <div class="col-span-2 p-3 text-right text-xs font-black text-slate-700 self-center item-amount-label">₱0.00</div>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center bg-slate-900 text-white p-4 rounded-2xl mt-4">
+                    <span class="text-xs font-black uppercase tracking-wider">Computed Grand Total Cost:</span>
+                    <span id="po-computed-grand-total" class="text-xl font-black">₱0.00</span>
+                </div>
+
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase block mb-1">Terms & Conditions</label>
+                    <textarea id="po-notes" placeholder="Terms, delivery date, etc..." class="w-full p-4 rounded-xl bg-slate-50 h-24 font-bold"></textarea>
+                </div>
+            </div>
+            <div class="flex gap-3 mt-8">
+                <button onclick="closeModal('po')" class="flex-1 py-4 font-black text-[10px] bg-slate-100 rounded-xl uppercase">Cancel</button>
+                <button onclick="doPurchaseOrder()" class="flex-1 py-4 font-black text-[10px] bg-blue-900 text-white rounded-xl uppercase shadow-lg">Issue PO</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- STAFF MODAL -->
+    <div id="modal-staff" class="hidden fixed inset-0 bg-slate-900/90 z-[100] flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-3xl p-8 shadow-2xl">
+            <h2 class="text-xl font-black uppercase mb-6 text-indigo-600 italic">Personnel Registration</h2>
+            <div class="space-y-4">
+                <input type="text" id="s-name" placeholder="Full Name" class="w-full p-4 rounded-xl bg-slate-50 font-bold">
+                <select id="s-dept-input" class="w-full p-4 rounded-xl bg-slate-50 font-bold">
+                    <option value="Staff and Payroll Department">Staff and Payroll Department</option>
+                    <option value="Operations">Operations</option>
+                    <option value="Logistics Department">Logistics Department</option>
+                    <option value="Maintenance / Motorpool">Maintenance / Motorpool</option>
+                    <option value="Logistics / Hauling">Logistics / Hauling</option>
+                </select>
+                <select id="s-role" class="w-full p-4 rounded-xl bg-slate-50 font-bold">
+                    <option value="Operator">Operator</option>
+                    <option value="Driver">Driver</option>
+                    <option value="Mechanic">Mechanic</option>
+                    <option value="Staff">Administrative</option>
+                    <option value="Manager">Manager</option>
+                </select>
+                <select id="s-unit" class="w-full p-4 rounded-xl bg-slate-50 font-bold"></select>
+                <input type="number" id="s-rate" placeholder="Monthly Salary Standard (₱)" class="w-full p-4 rounded-xl bg-slate-50 font-bold">
+                <textarea id="s-notes" placeholder="Contact, ID Numbers, or Remarks..." class="w-full p-4 rounded-xl bg-slate-50 h-24 font-bold"></textarea>
+            </div>
+            <div class="flex gap-3 mt-8">
+                <button onclick="closeModal('staff')" class="flex-1 py-4 font-black text-[10px] bg-slate-100 rounded-xl uppercase">Cancel</button>
+                <button onclick="doAddStaff()" class="flex-1 py-4 font-black text-[10px] bg-indigo-600 text-white rounded-xl uppercase shadow-lg">Save Personnel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- EXPENSE MODAL -->
+    <div id="modal-exp" class="hidden fixed inset-0 bg-slate-900/90 z-[100] flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-2xl rounded-3xl p-8 shadow-2xl overflow-y-auto max-h-[90vh]">
+            <h2 class="text-xl font-black uppercase mb-6 text-red-600 italic">Log Purchase / Expense</h2>
+            <div class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                        <label class="text-[10px] font-black text-slate-400 uppercase block mb-1">Transaction Date</label>
+                        <input type="datetime-local" id="exp-date" class="w-full p-4 rounded-xl bg-slate-50 font-bold">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-black text-slate-400 uppercase block mb-1">Target Asset Unit</label>
+                        <select id="exp-unit" class="w-full p-4 rounded-xl bg-slate-50 font-bold"></select>
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-black text-slate-400 uppercase block mb-1">Classification Category</label>
+                        <select id="exp-cat" class="w-full p-4 rounded-xl bg-slate-50 font-bold">
+                            <option value="Operational">Operational Expense</option>
+                            <option value="Purchase">Department Purchase</option>
+                            <option value="Permit">Regulatory/Permits</option>
+                            <option value="Misc">Other Miscellaneous</option>
+                        </select>
+                    </div>
+                </div>
+
+                <hr class="border-slate-100 my-2">
+                <label class="text-[10px] font-black text-slate-500 uppercase block">Line Items Matrix (Up to 5 items)</label>
+                
+                <div class="space-y-2" id="exp-items-container">
+                    <div class="grid grid-cols-12 gap-2 items-center text-[11px] font-black uppercase text-slate-400 px-2">
+                        <div class="col-span-6">Description / Particulars</div>
+                        <div class="col-span-2">Qty</div>
+                        <div class="col-span-2">Price (₱)</div>
+                        <div class="col-span-2 text-right">Amount</div>
+                    </div>
+                    <div class="exp-row grid grid-cols-12 gap-2">
+                        <input type="text" class="col-span-6 p-3 rounded-xl bg-slate-50 font-bold text-xs item-desc" placeholder="Item Row 1 Description">
+                        <input type="number" oninput="computeRowAmount(this)" class="col-span-2 p-3 rounded-xl bg-slate-50 font-bold text-xs item-qty" placeholder="0">
+                        <input type="number" oninput="computeRowAmount(this)" class="col-span-2 p-3 rounded-xl bg-slate-50 font-bold text-xs item-price" placeholder="0.00">
+                        <div class="col-span-2 p-3 text-right text-xs font-black text-slate-700 self-center item-amount-label">₱0.00</div>
+                    </div>
+                    <div class="exp-row grid grid-cols-12 gap-2">
+                        <input type="text" class="col-span-6 p-3 rounded-xl bg-slate-50 font-bold text-xs item-desc" placeholder="Item Row 2 Description">
+                        <input type="number" oninput="computeRowAmount(this)" class="col-span-2 p-3 rounded-xl bg-slate-50 font-bold text-xs item-qty" placeholder="0">
+                        <input type="number" oninput="computeRowAmount(this)" class="col-span-2 p-3 rounded-xl bg-slate-50 font-bold text-xs item-price" placeholder="0.00">
+                        <div class="col-span-2 p-3 text-right text-xs font-black text-slate-700 self-center item-amount-label">₱0.00</div>
+                    </div>
+                    <div class="exp-row grid grid-cols-12 gap-2">
+                        <input type="text" class="col-span-6 p-3 rounded-xl bg-slate-50 font-bold text-xs item-desc" placeholder="Item Row 3 Description">
+                        <input type="number" oninput="computeRowAmount(this)" class="col-span-2 p-3 rounded-xl bg-slate-50 font-bold text-xs item-qty" placeholder="0">
+                        <input type="number" oninput="computeRowAmount(this)" class="col-span-2 p-3 rounded-xl bg-slate-50 font-bold text-xs item-price" placeholder="0.00">
+                        <div class="col-span-2 p-3 text-right text-xs font-black text-slate-700 self-center item-amount-label">₱0.00</div>
+                    </div>
+                    <div class="exp-row grid grid-cols-12 gap-2">
+                        <input type="text" class="col-span-6 p-3 rounded-xl bg-slate-50 font-bold text-xs item-desc" placeholder="Item Row 4 Description">
+                        <input type="number" oninput="computeRowAmount(this)" class="col-span-2 p-3 rounded-xl bg-slate-50 font-bold text-xs item-qty" placeholder="0">
+                        <input type="number" oninput="computeRowAmount(this)" class="col-span-2 p-3 rounded-xl bg-slate-50 font-bold text-xs item-price" placeholder="0.00">
+                        <div class="col-span-2 p-3 text-right text-xs font-black text-slate-700 self-center item-amount-label">₱0.00</div>
+                    </div>
+                    <div class="exp-row grid grid-cols-12 gap-2">
+                        <input type="text" class="col-span-6 p-3 rounded-xl bg-slate-50 font-bold text-xs item-desc" placeholder="Item Row 5 Description">
+                        <input type="number" oninput="computeRowAmount(this)" class="col-span-2 p-3 rounded-xl bg-slate-50 font-bold text-xs item-qty" placeholder="0">
+                        <input type="number" oninput="computeRowAmount(this)" class="col-span-2 p-3 rounded-xl bg-slate-50 font-bold text-xs item-price" placeholder="0.00">
+                        <div class="col-span-2 p-3 text-right text-xs font-black text-slate-700 self-center item-amount-label">₱0.00</div>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center bg-slate-900 text-white p-4 rounded-2xl mt-4">
+                    <span class="text-xs font-black uppercase tracking-wider">Computed Grand Total Cost:</span>
+                    <span id="exp-computed-grand-total" class="text-xl font-black">₱0.00</span>
+                </div>
+            </div>
+            <div class="flex gap-3 mt-8">
+                <button onclick="closeModal('exp')" class="flex-1 py-4 font-black text-[10px] bg-slate-100 rounded-xl uppercase">Cancel</button>
+                <button onclick="doExpense()" class="flex-1 py-4 font-black text-[10px] bg-red-600 text-white rounded-xl uppercase shadow-lg">Post Expense</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- EDIT MODAL -->
+    <div id="modal-edit" class="hidden fixed inset-0 bg-slate-900/90 z-[100] flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-3xl p-8 shadow-2xl">
+            <h2 class="text-xl font-black uppercase mb-6 text-blue-600 italic">Modify Record</h2>
+            <div id="edit-fields" class="space-y-4 max-h-[60vh] overflow-y-auto"></div>
+            <div class="flex gap-3 mt-8">
+                <button onclick="closeModal('edit')" class="flex-1 py-4 font-black text-[10px] bg-slate-100 rounded-xl uppercase">Cancel</button>
+                <button onclick="commitEdit()" class="flex-1 py-4 font-black text-[10px] bg-blue-600 text-white rounded-xl uppercase shadow-lg">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- REVENUE MODAL -->
+    <div id="modal-rev" class="hidden fixed inset-0 bg-slate-900/90 z-[100] flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-2xl rounded-3xl p-8 shadow-2xl overflow-y-auto max-h-[90vh]">
+            <h2 class="text-xl font-black uppercase mb-6 text-green-600 italic">Log Asset Income</h2>
+            <div class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-[10px] font-black text-slate-400 uppercase block mb-1">Transaction Date</label>
+                        <input type="datetime-local" id="rev-date" class="w-full p-4 rounded-xl bg-slate-50 font-bold">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-black text-slate-400 uppercase block mb-1">Target Asset Unit</label>
+                        <select id="rev-unit" class="w-full p-4 rounded-xl bg-slate-50 font-bold"></select>
+                    </div>
+                </div>
+
+                <hr class="border-slate-100 my-2">
+                <label class="text-[10px] font-black text-slate-500 uppercase block">Line Items Matrix (Up to 5 items)</label>
+                
+                <div class="space-y-2" id="rev-items-container">
+                    <div class="grid grid-cols-12 gap-2 items-center text-[11px] font-black uppercase text-slate-400 px-2">
+                        <div class="col-span-6">Service Particulars / Item Description</div>
+                        <div class="col-span-2">Qty</div>
+                        <div class="col-span-2">Price (₱)</div>
+                        <div class="col-span-2 text-right">Amount</div>
+                    </div>
+                    <div class="rev-row grid grid-cols-12 gap-2">
+                        <input type="text" class="col-span-6 p-3 rounded-xl bg-slate-50 font-bold text-xs item-desc" placeholder="Income Row 1 Details">
+                        <input type="number" oninput="computeRowAmount(this)" class="col-span-2 p-3 rounded-xl bg-slate-50 font-bold text-xs item-qty" placeholder="0">
+                        <input type="number" oninput="computeRowAmount(this)" class="col-span-2 p-3 rounded-xl bg-slate-50 font-bold text-xs item-price" placeholder="0.00">
+                        <div class="col-span-2 p-3 text-right text-xs font-black text-slate-700 self-center item-amount-label">₱0.00</div>
+                    </div>
+                    <div class="rev-row grid grid-cols-12 gap-2">
+                        <input type="text" class="col-span-6 p-3 rounded-xl bg-slate-50 font-bold text-xs item-desc" placeholder="Income Row 2 Details">
+                        <input type="number" oninput="computeRowAmount(this)" class="col-span-2 p-3 rounded-xl bg-slate-50 font-bold text-xs item-qty" placeholder="0">
+                        <input type="number" oninput="computeRowAmount(this)" class="col-span-2 p-3 rounded-xl bg-slate-50 font-bold text-xs item-price" placeholder="0.00">
+                        <div class="col-span-2 p-3 text-right text-xs font-black text-slate-700 self-center item-amount-label">₱0.00</div>
+                    </div>
+                    <div class="rev-row grid grid-cols-12 gap-2">
+                        <input type="text" class="col-span-6 p-3 rounded-xl bg-slate-50 font-bold text-xs item-desc" placeholder="Income Row 3 Details">
+                        <input type="number" oninput="computeRowAmount(this)" class="col-span-2 p-3 rounded-xl bg-slate-50 font-bold text-xs item-qty" placeholder="0">
+                        <input type="number" oninput="computeRowAmount(this)" class="col-span-2 p-3 rounded-xl bg-slate-50 font-bold text-xs item-price" placeholder="0.00">
+                        <div class="col-span-2 p-3 text-right text-xs font-black text-slate-700 self-center item-amount-label">₱0.00</div>
+                    </div>
+                    <div class="rev-row grid grid-cols-12 gap-2">
+                        <input type="text" class="col-span-6 p-3 rounded-xl bg-slate-50 font-bold text-xs item-desc" placeholder="Income Row 4 Details">
+                        <input type="number" oninput="computeRowAmount(this)" class="col-span-2 p-3 rounded-xl bg-slate-50 font-bold text-xs item-qty" placeholder="0">
+                        <input type="number" oninput="computeRowAmount(this)" class="col-span-2 p-3 rounded-xl bg-slate-50 font-bold text-xs item-price" placeholder="0.00">
+                        <div class="col-span-2 p-3 text-right text-xs font-black text-slate-700 self-center item-amount-label">₱0.00</div>
+                    </div>
+                    <div class="rev-row grid grid-cols-12 gap-2">
+                        <input type="text" class="col-span-6 p-3 rounded-xl bg-slate-50 font-bold text-xs item-desc" placeholder="Income Row 5 Details">
+                        <input type="number" oninput="computeRowAmount(this)" class="col-span-2 p-3 rounded-xl bg-slate-50 font-bold text-xs item-qty" placeholder="0">
+                        <input type="number" oninput="computeRowAmount(this)" class="col-span-2 p-3 rounded-xl bg-slate-50 font-bold text-xs item-price" placeholder="0.00">
+                        <div class="col-span-2 p-3 text-right text-xs font-black text-slate-700 self-center item-amount-label">₱0.00</div>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center bg-slate-900 text-white p-4 rounded-2xl mt-4">
+                    <span class="text-xs font-black uppercase tracking-wider">Computed Grand Total Income:</span>
+                    <span id="rev-computed-grand-total" class="text-xl font-black">₱0.00</span>
+                </div>
+            </div>
+            <div class="flex gap-3 mt-8">
+                <button onclick="closeModal('rev')" class="flex-1 py-4 font-black text-[10px] bg-slate-100 rounded-xl uppercase">Cancel</button>
+                <button onclick="doRevenue()" class="flex-1 py-4 font-black text-[10px] bg-green-600 text-white rounded-xl uppercase shadow-lg">Post Income</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ASSET MODAL -->
+    <div id="modal-reg" class="hidden fixed inset-0 bg-slate-900/90 z-[100] flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-3xl p-8 shadow-2xl">
+            <h2 class="text-xl font-black uppercase mb-6 text-blue-600 italic">Asset Registry</h2>
+            <div class="space-y-4">
+                <input type="text" id="r-id" placeholder="Unit ID (e.g. TRK-01)" class="w-full p-4 rounded-xl bg-slate-50 font-bold uppercase">
+                <input type="text" id="r-name" placeholder="Model / Specs" class="w-full p-4 rounded-xl bg-slate-50 font-bold">
+            </div>
+            <div class="flex gap-3 mt-8">
+                <button onclick="closeModal('reg')" class="flex-1 py-4 font-black text-[10px] bg-slate-100 rounded-xl uppercase">Cancel</button>
+                <button onclick="doRegister()" class="flex-1 py-4 font-black text-[10px] bg-blue-600 text-white rounded-xl uppercase shadow-lg">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const MASTER_USERS = { 'admin': { pass: 'admin123', role: 'admin' } };
+        let userDb = JSON.parse(localStorage.getItem('ULLSWATER_USERS')) || MASTER_USERS;
+        let activeUser = null;
+
+        const DEFAULT_DB = { 
+            fleet: [
+                { id: "TRK-101", name: "Isuzu Giga 10-Wheeler", timestamp: "01/01/2026, 08:00:00 AM" },
+                { id: "TRK-102", name: "Fuso Super Great Dump", timestamp: "01/05/2026, 09:15:00 AM" }
+            ], 
+            inventory: [
+                { name: "Heavy Duty Brake Pads", qty: 24, cost: 4500, timestamp: "01/10/2026, 02:00:00 PM" },
+                { name: "Synthetic Engine Oil (L)", qty: 120, cost: 650, timestamp: "01/12/2026, 11:30:00 AM" }
+            ], 
+            maint: [
+                { unitId: "TRK-101", jobs: "Full Engine Overhaul", partName: "Gasket Set", partQty: 1, date: "02/10/2026, 10:00:00 AM" },
+                { unitId: "TRK-102", jobs: "Hydraulic Pump Repair", partName: "Hydraulic Seal Kit", partQty: 2, date: "02/12/2026, 03:00:00 PM" }
+            ], 
+            finance: [
+                { date: "03/10/2026, 09:00:00 AM", unitId: "TRK-101", type: "REVENUE", desc: "Long-haul Hauling Contract (Manila-Davao)", amount: 150000 },
+                { date: "03/12/2026, 11:00:00 AM", unitId: "TRK-102", type: "REVENUE", desc: "Aggregate Delivery Service (Local)", amount: 45000 },
+                { date: "04/05/2026, 10:00:00 AM", unitId: "TRK-101", type: "COST", desc: "[Operational] Full Tank Diesel Refill", amount: 12500 }
+            ], 
+            staff: [
+                { name: "Juan Dela Cruz", dept: "Operations", role: "Driver", unitId: "TRK-101", rate: 25000, notes: "", timestamp: "01/01/2026, 08:00:00 AM" },
+                { name: "Maria Santos", dept: "Staff and Payroll Department", role: "Staff", unitId: "OVERHEAD", rate: 22000, notes: "", timestamp: "01/01/2026, 08:00:00 AM" }
+            ], 
+            po: [
+                { date: "04/01/2026, 09:00:00 AM", vendor: "Petron Bulk Sales", item: "5000L Industrial Diesel", amount: 325000, unitId: "OVERHEAD", notes: "Net 30 terms" }
+            ] 
+        };
+
+        let db = JSON.parse(localStorage.getItem('ULLSWATER_FLEET_APEX_V10')) || JSON.parse(JSON.stringify(DEFAULT_DB));
+        let currentEdit = { dept: '', idx: null };
+        let currentTab = 'dashboard';
+
+        const php = (v) => new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(v);
+        
+        const getNow = () => new Date().toLocaleString('en-PH', { 
+            year: 'numeric', month: '2-digit', day: '2-digit', 
+            hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true 
+        });
+
+        const formatDateForInput = (dateStr) => {
+            try {
+                if(!dateStr) return "";
+                const parts = dateStr.split(', ');
+                if(parts.length < 2) return "";
+                const dateParts = parts[0].split('/');
+                const timeParts = parts[1].split(' ');
+                const hms = timeParts[0].split(':');
+                let hour = parseInt(hms[0]);
+                const ampm = timeParts[1];
+                if (ampm === 'PM' && hour < 12) hour += 12;
+                if (ampm === 'AM' && hour === 12) hour = 0;
+                const year = dateParts[2];
+                const month = dateParts[0].padStart(2, '0');
+                const day = dateParts[1].padStart(2, '0');
+                const hh = hour.toString().padStart(2, '0');
+                const mm = hms[1].padStart(2, '0');
+                return `${year}-${month}-${day}T${hh}:${mm}`;
+            } catch(e) { return ""; }
+        };
+
+        const parseInputToLocaleString = (inputVal) => {
+            if(!inputVal) return getNow();
+            const d = new Date(inputVal);
+            if(isNaN(d.getTime())) return getNow();
+            return d.toLocaleString('en-PH', { 
+                year: 'numeric', month: '2-digit', day: '2-digit', 
+                hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true 
+            });
+        };
+
+        function switchTab(tabId) {
+            currentTab = tabId;
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.getElementById('tab-' + tabId).classList.add('active');
+            document.querySelectorAll('nav button').forEach(el => el.classList.remove('nav-active'));
+            const btn = document.getElementById('nav-' + tabId);
+            if(btn) btn.classList.add('nav-active');
+            document.getElementById('tab-title').innerText = tabId === 'dashboard' ? 'Executive Board' : tabId.toUpperCase();
+        }
+
+        function openModal(id) { document.getElementById('modal-' + id).classList.remove('hidden'); }
+        function closeModal(id) { document.getElementById('modal-' + id).classList.add('hidden'); }
+
+        function fallsInPeriod(dateStr) {
+            const filterFrom = document.getElementById('fleet-filter-from').value;
+            const filterTo = document.getElementById('fleet-filter-to').value;
+            if(!filterFrom && !filterTo) return true;
+            let checkTime = NaN;
+            try {
+                const parts = dateStr.split(', ');
+                const dParts = parts[0].split('/');
+                const tParts = parts[1].split(' ');
+                const hms = tParts[0].split(':');
+                let hour = parseInt(hms[0]);
+                if (tParts[1] === 'PM' && hour < 12) hour += 12;
+                if (tParts[1] === 'AM' && hour === 12) hour = 0;
+                let convertedD = new Date(dParts[2], dParts[0]-1, dParts[1], hour, hms[1], hms[2] || 0);
+                checkTime = convertedD.getTime();
+            } catch(e) { return true; }
+            if(isNaN(checkTime)) return true;
+            if(filterFrom) {
+                if(checkTime < new Date(filterFrom).getTime()) return false;
+            }
+            if(filterTo) {
+                if(checkTime > new Date(filterTo).getTime()) return false;
+            }
+            return true;
+        }
+
+        function attemptLogin() {
+            const u = document.getElementById('user-input').value;
+            const p = document.getElementById('pass-input').value;
+            if (userDb[u] && userDb[u].pass === p) {
+                activeUser = { name: u, ...userDb[u] };
+                document.getElementById('login-overlay').style.display = 'none';
+                applyPermissions();
+                refresh();
+            } else {
+                const err = document.getElementById('login-err');
+                err.classList.remove('hidden');
+                setTimeout(() => err.classList.add('hidden'), 2000);
+            }
+        }
+
+        function logout() { location.reload(); }
+
+        function applyPermissions() {
+            document.getElementById('display-user').innerText = `Logged in: ${activeUser.name} [${activeUser.role}]`;
+            if (activeUser.role === 'admin') {
+                document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'block');
+                document.querySelectorAll('.editor-only').forEach(el => el.style.display = 'block');
+            } else if (activeUser.role === 'editor') {
+                document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
+                document.querySelectorAll('.editor-only').forEach(el => el.style.display = 'block');
+            } else {
+                document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
+                document.querySelectorAll('.editor-only').forEach(el => el.style.display = 'none');
+            }
+        }
+
+        function computeRowAmount(inputEl) {
+            const parentRow = inputEl.closest('.grid');
+            const qty = parseFloat(parentRow.querySelector('.item-qty').value) || 0;
+            const price = parseFloat(parentRow.querySelector('.item-price').value) || 0;
+            const amtLabel = parentRow.querySelector('.item-amount-label');
+            
+            const total = qty * price;
+            amtLabel.innerText = php(total);
+            
+            let targetContainer = '#exp-items-container';
+            let totalLabelId = 'exp-computed-grand-total';
+            
+            if (parentRow.classList.contains('rev-row')) {
+                targetContainer = '#rev-items-container';
+                totalLabelId = 'rev-computed-grand-total';
+            } else if (parentRow.classList.contains('po-row')) {
+                targetContainer = '#po-items-container';
+                totalLabelId = 'po-computed-grand-total';
+            }
+            
+            let sumTotal = 0;
+            document.querySelectorAll(`${targetContainer} .grid`).forEach(row => {
+                const qInput = row.querySelector('.item-qty');
+                const pInput = row.querySelector('.item-price');
+                if(qInput && pInput) {
+                    sumTotal += (parseFloat(qInput.value) || 0) * (parseFloat(pInput.value) || 0);
+                }
+            });
+            document.getElementById(totalLabelId).innerText = php(sumTotal);
+        }
+
+        function autoFillPsRate() {
+            const idx = document.getElementById('ps-staff-select').value;
+            if(idx !== "" && db.staff[idx]) {
+                const hourlyEstimation = (db.staff[idx].rate / 26) / 8;
+                document.getElementById('ps-rate-display').value = hourlyEstimation.toFixed(2);
+                calculateSettlementTotal();
+            }
+        }
+
+        function calculateSettlementTotal() {
+            const staffIdx = document.getElementById('ps-staff-select').value;
+            const baseRate = parseFloat(document.getElementById('ps-rate-display').value) || 0;
+            const regHrs = parseFloat(document.getElementById('ps-hrs-reg').value) || 0;
+            const otHrs = parseFloat(document.getElementById('ps-hrs-ot').value) || 0;
+            const rdHrs = parseFloat(document.getElementById('ps-hrs-rd').value) || 0;
+            const shHrs = parseFloat(document.getElementById('ps-hrs-sh').value) || 0;
+            const holHrs = parseFloat(document.getElementById('ps-hrs-hol').value) || 0;
+            
+            let manualDeductions = 0;
+            document.querySelectorAll('#ps-deductions-container .ps-ded-row').forEach(row => {
+                const qty = parseFloat(row.querySelector('.ded-qty').value) || 0;
+                const rate = parseFloat(row.querySelector('.ded-rate').value) || 0;
+                const amt = qty * rate;
+                row.querySelector('.ded-amount-label').innerText = php(amt);
+                manualDeductions += amt;
+            });
+            
+            // 2026 Compliant Multiplier Computation Pipeline
+            const grossBasic = baseRate * regHrs;
+            const otPay = baseRate * 1.25 * otHrs;
+            const rdPay = baseRate * 1.30 * rdHrs;
+            const shPay = baseRate * 1.30 * shHrs;
+            const holPay = baseRate * 2.00 * holHrs;
+            const grossEarnings = grossBasic + otPay + rdPay + shPay + holPay;
+            
+            let sssEE = 0, phEE = 0, pagibigEE = 0;
+            let thMonthAccrual = grossBasic / 12;
+
+            if(staffIdx !== "" && db.staff[staffIdx]) {
+                const mSalary = db.staff[staffIdx].rate || 0;
+                
+                // SSS 2026 Compliance Vector
+                sssEE = (mSalary * 0.05) / 2;
+                
+                // PhilHealth 2026 Compliance Vector
+                const phBase = Math.min(mSalary, 100000);
+                phEE = (phBase * 0.025) / 2;
+                
+                // Pag-IBIG 2026 Compliance Vector
+                pagibigEE = 100;
+            }
+
+            document.getElementById('lbl-sss').innerText = php(sssEE);
+            document.getElementById('lbl-ph').innerText = php(phEE);
+            document.getElementById('lbl-pagibig').innerText = php(pagibigEE);
+            document.getElementById('lbl-13th').innerText = php(thMonthAccrual);
+
+            const totalDeductions = manualDeductions + sssEE + phEE + pagibigEE;
+            const net = grossEarnings - totalDeductions;
+            
+            document.getElementById('ps-grand-total').innerText = php(net);
+        }
+
+        function executeOfficialSettlement() {
+            const staffIdx = document.getElementById('ps-staff-select').value;
+            const fDate = document.getElementById('ps-from-date').value;
+            const tDate = document.getElementById('ps-to-date').value;
+            
+            if(staffIdx === "" || !fDate || !tDate) {
+                return alert("Please fulfill all operational parameter fields.");
+            }
+            
+            const staffMem = db.staff[staffIdx];
+            const baseRate = parseFloat(document.getElementById('ps-rate-display').value) || 0;
+            const regHrs = parseFloat(document.getElementById('ps-hrs-reg').value) || 0;
+            const otHrs = parseFloat(document.getElementById('ps-hrs-ot').value) || 0;
+            const rdHrs = parseFloat(document.getElementById('ps-hrs-rd').value) || 0;
+            const shHrs = parseFloat(document.getElementById('ps-hrs-sh').value) || 0;
+            const holHrs = parseFloat(document.getElementById('ps-hrs-hol').value) || 0;
+            
+            let manualDeductions = 0;
+            let manualDeductionsList = [];
+            document.querySelectorAll('#ps-deductions-container .ps-ded-row').forEach(row => {
+                const category = row.querySelector('.ded-category').value.trim();
+                const qty = parseFloat(row.querySelector('.ded-qty').value) || 0;
+                const rate = parseFloat(row.querySelector('.ded-rate').value) || 0;
+                const notes = row.querySelector('.ded-notes').value.trim();
+                const amt = qty * rate;
+                if (category !== "" && amt > 0) {
+                    manualDeductionsList.push({ category, qty, rate, notes, amount: amt });
+                    manualDeductions += amt;
+                }
+            });
+            
+            const grossBasic = baseRate * regHrs;
+            const otPay = baseRate * 1.25 * otHrs;
+            const rdPay = baseRate * 1.30 * rdHrs;
+            const shPay = baseRate * 1.30 * shHrs;
+            const holPay = baseRate * 2.00 * holHrs;
+            const grossEarnings = grossBasic + otPay + rdPay + shPay + holPay;
+            
+            const mSalary = staffMem.rate || 0;
+            const sssEE = (mSalary * 0.05) / 2;
+            const sssER = ((mSalary * 0.10) / 2) + (mSalary > 15000 ? 15 : 0);
+            const phEE = (Math.min(mSalary, 100000) * 0.025) / 2;
+            const phER = phEE;
+            const pagibigEE = 100;
+            const pagibigER = 100;
+            const thMonth = grossBasic / 12;
+            
+            const totalDeductions = manualDeductions + sssEE + phEE + pagibigEE;
+            const net = grossEarnings - totalDeductions;
+            
+            db.finance.push({
+                date: getNow(),
+                unitId: staffMem.unitId || "OVERHEAD",
+                type: 'COST',
+                desc: `[2026 Law Compliant Settlement] Bimonthly Payout for ${staffMem.name} (${fDate} to ${tDate})`,
+                amount: net,
+                isSettlement: true,
+                staffName: staffMem.name,
+                staffRole: staffMem.role,
+                fDate: fDate,
+                tDate: tDate,
+                baseRate: baseRate,
+                regHrs: regHrs,
+                otHrs: otHrs,
+                rdHrs: rdHrs,
+                shHrs: shHrs,
+                holHrs: holHrs,
+                manualDeductions: manualDeductions,
+                manualDeductionsList: manualDeductionsList,
+                sssEE: sssEE,
+                sssER: sssER,
+                phEE: phEE,
+                phER: phER,
+                pagibigEE: pagibigEE,
+                pagibigER: pagibigER,
+                thMonth: thMonth
+            });
+            
+            // Reset deduction rows after dispatch
+            document.querySelectorAll('#ps-deductions-container .ps-ded-row').forEach(row => {
+                row.querySelector('.ded-category').value = '';
+                row.querySelector('.ded-qty').value = '';
+                row.querySelector('.ded-rate').value = '';
+                row.querySelector('.ded-notes').value = '';
+                row.querySelector('.ded-amount-label').innerText = '₱0.00';
+            });
+            
+            closeModal('payroll-settlement');
+            refresh();
+            
+            // Print the newly posted settlement slip directly from index
+            printTicket(db.finance.length - 1);
+        }
+
+        function refresh() {
+            const validFinance = db.finance.filter(x => fallsInPeriod(x.date));
+            const validMaint = db.maint.filter(x => fallsInPeriod(x.date));
+
+            const totalRev = validFinance.filter(x => x.type === 'REVENUE').reduce((a,b) => a + b.amount, 0);
+            const totalCost = validFinance.filter(x => x.type === 'COST').reduce((a,b) => a + b.amount, 0);
+            const totalLabor = db.staff.reduce((a, b) => a + b.rate, 0);
+            
+            document.getElementById('d-rev').innerText = php(totalRev);
+            document.getElementById('d-pay').innerText = php(totalCost);
+            document.getElementById('d-margin').innerText = php(totalRev - (totalCost + totalLabor));
+            document.getElementById('d-labor').innerText = php(totalLabor);
+
+            document.getElementById('l-active').innerText = db.fleet.length;
+            document.getElementById('l-staff').innerText = db.staff.filter(s => s.dept === "Logistics Department" || s.dept === "Logistics / Hauling").length;
+
+            const unitOpts = db.fleet.map(f => `<option value="${f.id}">${f.id}</option>`).join('') + `<option value="OVERHEAD">GENERAL OVERHEAD</option>`;
+            ['m-unit', 'rev-unit', 's-unit', 'exp-unit', 'po-unit'].forEach(id => {
+                if(document.getElementById(id)) document.getElementById(id).innerHTML = unitOpts;
+            });
+            
+            document.getElementById('m-part-idx').innerHTML = `<option value="">-- LABOR ONLY --</option>` + 
+                db.inventory.map((item, i) => `<option value="${i}">${item.name} (${item.qty})</option>`).join('');
+
+            document.getElementById('ps-staff-select').innerHTML = `<option value="">-- Select Employee --</option>` +
+                db.staff.map((s, i) => `<option value="${i}">${s.name} [${s.role}]</option>`).join('');
+
+            const canEdit = activeUser.role === 'admin' || activeUser.role === 'editor';
+
+            document.getElementById('list-fleet').innerHTML = db.fleet.map((f, i) => {
+                const uRev = validFinance.filter(x => x.unitId === f.id && x.type === 'REVENUE').reduce((a,b) => a + b.amount, 0);
+                const uCost = validFinance.filter(x => x.unitId === f.id && x.type === 'COST').reduce((a,b) => a + b.amount, 0);
+                const uLabor = db.staff.filter(s => s.unitId === f.id).reduce((a,b) => a + b.rate, 0);
+                const net = uRev - (uCost + uLabor);
+                return `<tr><td class="p-6 uppercase"><span class="block">${f.id}</span><span class="text-[9px] text-slate-400 font-bold block">${f.name}</span></td><td class="p-6 text-green-600">${php(uRev)}</td><td class="p-6 text-red-600">${php(uCost)}</td><td class="p-6 text-indigo-600">${php(uLabor)}</td><td class="p-6 font-black ${net >= 0 ? 'text-blue-600' : 'text-orange-600'}">${php(net)}</td><td class="p-6 text-center no-print space-x-2"><button onclick="printUnitStatement('${f.id}')" class="text-slate-600 hover:text-blue-600"><i data-lucide="printer" class="w-4 h-4"></i></button>${canEdit ? `<button onclick="prepEdit('fleet', ${i})" class="text-blue-500"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="removeItem('fleet', ${i})" class="text-red-400"><i data-lucide="trash-2" class="w-4 h-4"></i></button>` : '--'}</td></tr>`;
+            }).join('');
+
+            document.getElementById('list-staff').innerHTML = db.staff.map((s, i) => `<tr><td class="p-6"><span class="block font-black uppercase">${s.name}</span><span class="text-[9px] text-indigo-600 font-bold italic tracking-tight">${s.dept || 'N/A'}</span></td><td class="p-6"><span class="px-2 py-1 bg-slate-100 rounded text-[10px] font-black">${s.role}</span></td><td class="p-6 font-mono text-xs font-black italic text-indigo-600">${s.unitId}</td><td class="p-6">${php(s.rate)}</td><td class="p-6 text-center no-print space-x-2"><button onclick="printStaffSlip(${i})" class="text-indigo-600 hover:text-indigo-900"><i data-lucide="printer" class="w-4 h-4"></i></button>${canEdit ? `<button onclick="prepEdit('staff', ${i})" class="text-blue-500"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="removeItem('staff', ${i})" class="text-red-400"><i data-lucide="trash-2" class="w-4 h-4"></i></button>` : '--'}</td></tr>`).join('');
+
+            document.getElementById('list-inventory').innerHTML = db.inventory.map((item, i) => `<tr><td class="p-6"><span class="block font-black uppercase italic tracking-tight">${item.name}</span></td><td class="p-6 ${item.qty < 3 ? 'text-red-600' : 'text-slate-600'}">${item.qty} units</td><td class="p-6 text-right font-black text-slate-900">${php(item.qty * item.cost)}</td><td class="p-6 text-center no-print space-x-2">${canEdit ? `<button onclick="prepEdit('inventory', ${i})" class="text-blue-500"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="removeItem('inventory', ${i})" class="text-red-400"><i data-lucide="trash-2" class="w-4 h-4"></i></button>` : '--'}</td></tr>`).join('');
+
+            document.getElementById('list-maint').innerHTML = validMaint.map((m, i) => `
+                <div class="bg-white p-6 rounded-[2rem] border-l-8 border-l-red-600 shadow-sm relative hover:shadow-md transition">
+                    <div class="flex justify-between mb-2">
+                        <h4 class="font-black italic uppercase">${m.unitId}</h4>
+                        <span class="text-[10px] font-bold text-slate-400">${m.date}</span>
+                    </div>
+                    <p class="text-xs font-bold text-slate-600 italic mb-2">"${m.jobs}"</p>
+                    <p class="text-[10px] font-black text-red-600 uppercase">Part Used: ${m.partName} (${m.partQty})</p>
+                    <div class="no-print absolute top-6 right-6 flex gap-2">
+                        <button onclick="printMotorpoolTicket(${i})" class="text-slate-600 hover:text-blue-600"><i data-lucide="printer" class="w-4 h-4"></i></button>
+                        ${canEdit ? `<button onclick="prepEdit('maint', ${i})" class="text-blue-500"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="removeItem('maint', ${i})" class="text-red-400"><i data-lucide="trash-2" class="w-4 h-4"></i></button>` : ''}
+                    </div>
+                </div>`).reverse().join('');
+
+            document.getElementById('list-po').innerHTML = (db.po || []).map((p, i) => `
+                <tr>
+                    <td class="p-6"><span class="block font-black">#PO-${1000 + i}</span><span class="text-[9px] text-slate-400">${p.date}</span></td>
+                    <td class="p-6 uppercase text-blue-600 font-black">${p.vendor}</td>
+                    <td class="p-6 text-xs uppercase text-slate-500">${p.item}</td>
+                    <td class="p-6 font-bold text-indigo-600 italic">${p.unitId}</td>
+                    <td class="p-6 text-right font-black">${php(p.amount)}</td>
+                    <td class="p-6 text-center no-print space-x-2">
+                        <button onclick="printPOTicket(${i})" class="text-blue-600"><i data-lucide="printer" class="w-4 h-4"></i></button>
+                        ${canEdit ? `<button onclick="prepEdit('po', ${i})" class="text-blue-500"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="removeItem('po', ${i})" class="text-red-400"><i data-lucide="trash-2" class="w-4 h-4"></i></button>` : '--'}
+                    </td>
+                </tr>`).reverse().join('');
+
+            document.getElementById('list-finance').innerHTML = db.finance.map((ex, i) => `<tr><td class="p-6 text-slate-400 font-mono text-[10px]">${ex.date}</td><td class="p-6 font-black uppercase text-xs italic text-blue-600">${ex.unitId}</td><td class="p-6"><span class="px-2 py-0.5 rounded text-[9px] font-black uppercase ${ex.type === 'REVENUE' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">${ex.type}</span></td><td class="p-6 text-xs uppercase text-slate-500 font-bold">${ex.desc}</td><td class="p-6 text-right font-black ${ex.type === 'REVENUE' ? 'text-green-600' : 'text-red-600'}">${php(ex.amount)}</td><td class="p-6 text-center no-print flex gap-2 justify-center"><button onclick="printTicket(${i})" class="text-slate-600 hover:text-blue-600"><i data-lucide="printer" class="w-4 h-4"></i></button>${canEdit ? `<button onclick="prepEdit('finance', ${i})" class="text-blue-500"><i data-lucide="edit-3" class="w-4 h-4"></i></button><button onclick="removeItem('finance', ${i})" class="text-red-400"><i data-lucide="trash-2" class="w-4 h-4"></i></button>` : '--'}</td></tr>`).reverse().join('');
+
+            document.getElementById('list-users').innerHTML = Object.keys(userDb).map(u => `<tr><td class="p-6 uppercase font-black">${u}</td><td class="p-6"><span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-[9px] font-black uppercase">${userDb[u].role}</span></td><td class="p-6 text-center"><button onclick="removeUser('${u}')" class="text-red-400"><i data-lucide="user-x"></i></button></td></tr>`).join('');
+
+            lucide.createIcons();
+            localStorage.setItem('ULLSWATER_FLEET_APEX_V10', JSON.stringify(db));
+        }
+
+        function printStaffSlip(idx) {
+            const data = db.staff[idx];
+            const html = `<div class="receipt-print-only"><div style="text-align: center; border-bottom: 2px dashed #000; padding-bottom: 10px; margin-bottom: 10px;"><h2 style="margin: 0; font-size: 18px;">ULLSWATER CORP</h2><p style="margin: 0; font-size: 10px;">PAYROLL ADVISORY / STAFF SLIP</p></div><div style="font-size: 12px; line-height: 1.6;"><p><strong>NAME:</strong> ${data.name}</p><p><strong>DEPARTMENT:</strong> ${data.dept}</p><p><strong>POSITION:</strong> ${data.role}</p><p><strong>ASSIGNED UNIT:</strong> ${data.unitId}</p><div style="border-top: 1px solid #000; border-bottom: 1px solid #000; margin: 10px 0; padding: 5px 0; font-size: 16px; text-align: right;"><strong>RATE: ${php(data.rate)}</strong></div></div><div style="margin-top: 30px; border-top: 1px solid #000; padding-top: 5px; font-size: 8px; text-align: center;">EMPLOYEE SIGNATURE</div><div style="text-align: center; margin-top: 20px; font-size: 9px;"><p>Generated: ${getNow()}</p></div></div>`;
+            const w = window.open('', '_blank');
+            w.document.write(`<html><head><style>body { font-family: sans-serif; padding: 20px; } .receipt-print-only { width: 80mm; margin: 0 auto; font-family: 'Courier New', monospace; }</style></head><body>${html}</body></html>`);
+            w.document.close();
+            setTimeout(() => { w.print(); w.close(); }, 500);
+        }
+
+        function printUnitStatement(unitId) {
+            const trans = db.finance.filter(x => x.unitId === unitId && fallsInPeriod(x.date));
+            const staff = db.staff.filter(x => x.unitId === unitId);
+            const unit = db.fleet.find(f => f.id === unitId) || { name: 'N/A' };
+
+            const fFrom = document.getElementById('fleet-filter-from').value;
+            const fTo = document.getElementById('fleet-filter-to').value;
+            const periodString = (fFrom || fTo) ? `Period: ${fFrom || 'Start'} to ${fTo || 'End'}` : 'Full Historical Record';
+
+            let html = `<div class="receipt-print-only" style="width: 100%; font-family: monospace; color: black;">
+                <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px;">
+                    <h1 style="margin:0; font-size: 20px;">ULLSWATER CORPORATION</h1>
+                    <p style="margin:0; font-size: 14px; font-weight: bold;">STATEMENT OF ACCOUNT: ${unitId}</p>
+                    <p style="margin:0; font-size: 10px; font-style: italic;">${periodString}</p>
+                    <p style="margin:0; font-size: 10px;">${unit.name} | Generated: ${getNow()}</p>
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <h3 style="border-bottom: 1px solid #ccc; font-size: 12px; margin-bottom: 5px;">REVENUE TRANSACTIONS</h3>
+                    <table style="width:100%; font-size: 10px; border-collapse: collapse;">
+                        ${trans.filter(t => t.type === 'REVENUE').map(t => `<tr><td>${t.date.split(',')[0]}</td><td>${t.desc}</td><td style="text-align: right;">${php(t.amount)}</td></tr>`).join('') || '<tr><td colspan="3">No income recorded</td></tr>'}
+                    </table>
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <h3 style="border-bottom: 1px solid #ccc; font-size: 12px; margin-bottom: 5px;">EXPENSES & MAINTENANCE</h3>
+                    <table style="width:100%; font-size: 10px; border-collapse: collapse;">
+                        ${trans.filter(t => t.type === 'COST').map(t => `<tr><td>${t.date.split(',')[0]}</td><td>${t.desc}</td><td style="text-align: right;">(${php(t.amount)})</td></tr>`).join('') || '<tr><td colspan="3">No expenses recorded</td></tr>'}
+                    </table>
+                </div>
+                <div style="border-top: 2px solid #000; padding-top: 10px; text-align: right;">
+                    <h2 style="margin: 5px 0 0 0; font-size: 18px;">NET PERFORMANCE: ${php(trans.filter(t => t.type === 'REVENUE').reduce((a,b)=>a+b.amount,0) - trans.filter(t => t.type === 'COST').reduce((a,b)=>a+b.amount,0))}</h2>
+                </div>
+            </div>`;
+
+            const w = window.open('', '_blank');
+            w.document.write(`<html><head><title>SOA - ${unitId}</title></head><body style="padding:40px;">${html}</body></html>`);
+            w.document.close();
+            setTimeout(() => { w.print(); w.close(); }, 500);
+        }
+
+        function exportCSV() {
+            let csvRows = [];
+            csvRows.push("Category,Original_Index,Field_A,Field_B,Field_C,Field_D,Field_E,Field_F,Field_G");
+            for (let dept in db) {
+                if (Array.isArray(db[dept])) {
+                    db[dept].forEach((row, index) => {
+                        let values = [dept, index];
+                        Object.values(row).forEach(val => {
+                            let cell = (val === null || val === undefined) ? "" : val.toString();
+                            if (cell.includes(",") || cell.includes('"') || cell.includes("\n")) {
+                                cell = `"${cell.replace(/"/g, '""')}"`;
+                            }
+                            values.push(cell);
+                        });
+                        csvRows.push(values.join(","));
+                    });
+                }
+            }
+            const blob = new Blob([csvRows.join("\n")], { type: 'text/csv;charset=utf-8;' });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+            a.download = `ULLSWATER_FLEET_SYNC_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+        }
+
+        function importCSV(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const lines = e.target.result.split(/\r?\n/);
+                if (lines.length < 2) return;
+                let updateCount = 0, newCount = 0;
+                for (let i = 1; i < lines.length; i++) {
+                    const line = lines[i].trim(); if (!line) continue;
+                    const parts = line.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g) || [];
+                    const cleanParts = parts.map(p => p.replace(/^"|"$/g, '').replace(/""/g, '"'));
+                    const dept = cleanParts[0]; const index = parseInt(cleanParts[1]);
+                    if (db[dept]) {
+                        let keys = Object.keys(db[dept][0] || {}); if (keys.length === 0) continue;
+                        let updatedRecord = {};
+                        keys.forEach((key, kIdx) => {
+                            let val = cleanParts[kIdx + 2];
+                            updatedRecord[key] = (isNaN(val) || val === "") ? val : parseFloat(val);
+                        });
+                        if (!isNaN(index) && db[dept][index]) { db[dept][index] = updatedRecord; updateCount++; }
+                        else { db[dept].push(updatedRecord); newCount++; }
+                    }
+                }
+                refresh(); alert(`Sync Status: ${updateCount} Updated, ${newCount} New Entries Added.`); input.value = "";
+            };
+            reader.readAsText(file);
+        }
+
+        function printPOTicket(idx) {
+            const data = db.po[idx];
+            const html = `<div class="receipt-print-only"><div style="text-align: center; border-bottom: 2px dashed #000; padding-bottom: 10px; margin-bottom: 10px;"><h2 style="margin: 0; font-size: 18px;">ULLSWATER PO</h2><p style="margin: 0; font-size: 10px;">PURCHASE ORDER #${1000+idx}</p></div><div style="font-size: 12px; line-height: 1.6;"><p><strong>VENDOR:</strong> ${data.vendor}</p><p><strong>UNIT:</strong> ${data.unitId}</p><p><strong>PARTICULARS:</strong> ${data.item}</p><div style="border-top: 1px solid #000; border-bottom: 1px solid #000; margin: 10px 0; padding: 5px 0; font-size: 16px; text-align: right;"><strong>TOTAL: ${php(data.amount)}</strong></div></div></div>`;
+            const w = window.open('', '_blank'); w.document.write(html); w.document.close();
+            setTimeout(() => { w.print(); w.close(); }, 500);
+        }
+
+        function printTicket(idx) {
+            const data = db.finance[idx];
+            let ticketHtml = '';
+            
+            if (data.isSettlement) {
+                // Read from database dynamically so edited changes propagate to final slip recalculations
+                const baseRate = parseFloat(data.baseRate) || 0;
+                const regHrs = parseFloat(data.regHrs) || 0;
+                const otHrs = parseFloat(data.otHrs) || 0;
+                const rdHrs = parseFloat(data.rdHrs) || 0;
+                const shHrs = parseFloat(data.shHrs) || 0;
+                const holHrs = parseFloat(data.holHrs) || 0;
+                const manualDeductions = parseFloat(data.manualDeductions) || 0;
+                
+                const grossBasic = baseRate * regHrs;
+                const otPay = baseRate * 1.25 * otHrs;
+                const rdPay = baseRate * 1.30 * rdHrs;
+                const shPay = baseRate * 1.30 * shHrs;
+                const holPay = baseRate * 2.00 * holHrs;
+                const grossEarnings = grossBasic + otPay + rdPay + shPay + holPay;
+                
+                const sssEE = parseFloat(data.sssEE) || 0;
+                const sssER = parseFloat(data.sssER) || 0;
+                const phEE = parseFloat(data.phEE) || 0;
+                const phER = parseFloat(data.phER) || 0;
+                const pagibigEE = parseFloat(data.pagibigEE) || 0;
+                const pagibigER = parseFloat(data.pagibigER) || 0;
+                const thMonth = parseFloat(data.thMonth) || 0;
+                
+                const totalDeductions = manualDeductions + sssEE + phEE + pagibigEE;
+                const calculatedNet = grossEarnings - totalDeductions;
+                
+                ticketHtml = `
+                <div class="receipt-print-only">
+                    <div style="text-align: center; border-bottom: 2px dashed #000; padding-bottom: 10px; margin-bottom: 10px;">
+                        <h2 style="margin: 0; font-size: 15px;">ULLSWATER CORPORATION</h2>
+                        <p style="margin: 0; font-size: 9px; letter-spacing: 1px;">2026 COMPLIANT BIMONTHLY PAYROLL SLIP</p>
+                    </div>
+                    <div style="font-size: 11px; line-height: 1.5;">
+                        <p><strong>PERIOD COVERAGE:</strong> ${data.fDate} to ${data.tDate}</p>
+                        <p><strong>BENEFICIARY:</strong> ${data.staffName} [${data.staffRole}]</p>
+                        <p><strong>ASSIGNED UNIT ID:</strong> ${data.unitId}</p>
+                        <p><strong>BASE CALCULATION STANDARD:</strong> ${php(baseRate)}/hr</p>
+                        <hr style="border-top:1px dashed #000; margin: 5px 0;">
+                        <p>Regular Hours Earned: ${regHrs} (${php(grossBasic)})</p>
+                        <p>Overtime Multiplier (1.25x): ${otHrs} (${php(otPay)})</p>
+                        <p>Rest Day Multiplier (1.30x): ${rdHrs} (${php(rdPay)})</p>
+                        <p>Special Holiday Multiplier (1.30x): ${shHrs} (${php(shPay)})</p>
+                        <p>Legal Holiday Multiplier (2.00x): ${holHrs} (${php(holPay)})</p>
+                        <p style="font-weight:bold;">GROSS PERIOD EARNINGS: ${php(grossEarnings)}</p>
+                        <hr style="border-top:1px dashed #000; margin: 5px 0;">
+                        <p style="font-size:9px; text-decoration: underline;">STATUTORY REMITTANCES & MANUAL DEDUCTIONS</p>
+                        <p>SSS Contribution: ${php(sssEE)} / ER: ${php(sssER)}</p>
+                        <p>PhilHealth Contribution: ${php(phEE)} / ER: ${php(phER)}</p>
+                        <p>Pag-IBIG Contribution: ${php(pagibigEE)} / ER: ${php(pagibigER)}</p>
+                        ${(data.manualDeductionsList && data.manualDeductionsList.length > 0) ? 
+                            data.manualDeductionsList.map(d => `<p style="padding-left:10px;">- ${d.category} (x${d.qty} @ ${php(d.rate)}): -${php(d.amount)} ${d.notes ? `[${d.notes}]` : ''}</p>`).join('') :
+                            `<p>Manual Adjustments/Deductions: -${php(manualDeductions)}</p>`
+                        }
+                        <p class="text-green-700">13th Month Accrual Asset: +${php(thMonth)}</p>
+                        <div style="border-top: 1px solid #000; border-bottom: 1px solid #000; margin: 10px 0; padding: 5px 0; font-size: 13px; text-align: right;">
+                            <strong>NET CASH OUTFLOW Payout: ${php(calculatedNet)}</strong>
+                        </div>
+                    </div>
+                    <div style="margin-top: 40px; border-top: 1px solid #000; padding-top: 5px; font-size: 8px; text-align: center;">
+                        SETTLEMENT AUTHORITY OFFICIAL SIGN-OFF RECORD
+                    </div>
+                    <div style="text-align: center; margin-top: 15px; font-size: 8px;">
+                        <p>Timestamp Secure Vector: ${data.date}</p>
+                    </div>
+                </div>`;
+            } else {
+                ticketHtml = `<div class="receipt-print-only"><div style="text-align: center; border-bottom: 2px dashed #000; padding-bottom: 10px; margin-bottom: 10px;"><h2 style="margin: 0; font-size: 18px;">ULLSWATER CORP</h2></div><div style="font-size: 12px;"><p><strong>DESC:</strong> ${data.desc}</p><h3 style="text-align:right;">TOTAL: ${php(data.amount)}</h3></div></div>`;
+            }
+
+            const pW = window.open('', '_blank');
+            pW.document.write(`<html><head><style>body { font-family: sans-serif; padding: 20px; } .receipt-print-only { width: 80mm; margin: 0 auto; font-family: 'Courier New', monospace; }</style></head><body>${ticketHtml}</body></html>`);
+            pW.document.close();
+            setTimeout(() => { pW.print(); pW.close(); }, 500);
+        }
+
+        function printMotorpoolTicket(idx) {
+            const data = db.maint[idx];
+            const html = `<div class="receipt-print-only"><div style="text-align: center; border-bottom: 2px dashed #000; padding-bottom: 10px;"><h2 style="margin:0;">MOTORPOOL LOG</h2></div><p>Unit: ${data.unitId}</p><p>Jobs: ${data.jobs}</p></div>`;
+            const w = window.open('', '_blank'); w.document.write(html); w.document.close();
+            setTimeout(() => { w.print(); w.close(); }, 500);
+        }
+
+        function doPurchaseOrder() {
+            const vendor = document.getElementById('po-vendor').value.trim();
+            const unit = document.getElementById('po-unit').value;
+            const customDateInput = document.getElementById('po-date').value;
+            const date = customDateInput ? parseInputToLocaleString(customDateInput) : getNow();
+            let loggedItems = [], grandTotal = 0;
+
+            document.querySelectorAll('#po-items-container .po-row').forEach(row => {
+                const desc = row.querySelector('.item-desc').value.trim();
+                const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+                const price = parseFloat(row.querySelector('.item-price').value) || 0;
+                if (desc !== "" && qty > 0 && price > 0) {
+                    loggedItems.push(`${desc} (x${qty})`); grandTotal += (qty * price);
+                }
+            });
+            if (!vendor || loggedItems.length === 0 || grandTotal <= 0) return alert("Invalid parameters.");
+            if(!db.po) db.po = [];
+            db.po.push({ date, vendor, item: loggedItems.join(', '), amount: grandTotal, unitId: unit, notes: document.getElementById('po-notes').value });
+            db.finance.push({ date, unitId: unit, type: 'COST', desc: `[PO] ${vendor} - ${loggedItems.join(', ')}`, amount: grandTotal });
+            closeModal('po'); refresh();
+        }
+
+        function addUser() {
+            const u = document.getElementById('nu-name').value;
+            const p = document.getElementById('nu-pass').value;
+            const r = document.getElementById('nu-role').value;
+            if (!u || !p) return alert("Credentials required.");
+            userDb[u] = { pass: p, role: r }; saveUsers(); refresh();
+        }
+
+        function removeUser(u) {
+            if (u === 'admin') return alert("Cannot remove master admin.");
+            if (confirm(`Revoke access for ${u}?`)) { delete userDb[u]; saveUsers(); refresh(); }
+        }
+
+        function saveUsers() { localStorage.setItem('ULLSWATER_USERS', JSON.stringify(userDb)); }
+
+        function doExpense() {
+            const uId = document.getElementById('exp-unit').value;
+            const cat = document.getElementById('exp-cat').value;
+            const customDateInput = document.getElementById('exp-date').value;
+            const txDate = customDateInput ? parseInputToLocaleString(customDateInput) : getNow();
+            let loggedItems = [], grandTotal = 0;
+
+            document.querySelectorAll('#exp-items-container .exp-row').forEach(row => {
+                const desc = row.querySelector('.item-desc').value.trim();
+                const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+                const price = parseFloat(row.querySelector('.item-price').value) || 0;
+                if (desc !== "" && qty > 0 && price > 0) { loggedItems.push(`${desc} (x${qty})`); grandTotal += (qty * price); }
+            });
+            if (loggedItems.length === 0 || grandTotal <= 0) return alert("Check inputs.");
+            db.finance.push({ date: txDate, unitId: uId, type: 'COST', desc: `[${cat}] ${loggedItems.join(', ')}`, amount: grandTotal });
+            closeModal('exp'); refresh();
+        }
+
+        function doAddStaff() {
+            const name = document.getElementById('s-name').value;
+            if(!name) return alert("Employee Name is required.");
+            db.staff.push({ name, dept: document.getElementById('s-dept-input').value, role: document.getElementById('s-role').value, unitId: document.getElementById('s-unit').value, rate: parseFloat(document.getElementById('s-rate').value) || 0, notes: document.getElementById('s-notes').value, timestamp: getNow() });
+            closeModal('staff'); refresh();
+        }
+
+        function doRevenue() {
+            const uId = document.getElementById('rev-unit').value;
+            const customDateInput = document.getElementById('rev-date').value;
+            const txDate = customDateInput ? parseInputToLocaleString(customDateInput) : getNow();
+            let loggedItems = [], grandTotal = 0;
+
+            document.querySelectorAll('#rev-items-container .rev-row').forEach(row => {
+                const desc = row.querySelector('.item-desc').value.trim();
+                const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+                const price = parseFloat(row.querySelector('.item-price').value) || 0;
+                if (desc !== "" && qty > 0 && price > 0) { loggedItems.push(`${desc} (x${qty})`); grandTotal += (qty * price); }
+            });
+            if (loggedItems.length === 0 || grandTotal <= 0) return alert("Check inputs.");
+            db.finance.push({ date: txDate, unitId: uId, type: 'REVENUE', desc: loggedItems.join(', '), amount: grandTotal });
+            closeModal('rev'); refresh();
+        }
+
+        function doJobOrder() {
+            const uId = document.getElementById('m-unit').value;
+            const pIdx = document.getElementById('m-part-idx').value;
+            const pQty = parseInt(document.getElementById('m-part-qty').value) || 0;
+            let cost = 0, pName = "Mechanic Labor Only";
+            if(pIdx !== "") {
+                const p = db.inventory[pIdx]; if(p.qty < pQty) return alert("Insufficient Supply.");
+                p.qty -= pQty; cost = p.cost * pQty; pName = p.name;
+            }
+            db.maint.push({ unitId: uId, jobs: document.getElementById('m-jobs').value, partName: pName, partQty: pQty, date: getNow() });
+            db.finance.push({ date: getNow(), unitId: uId, type: 'COST', desc: `Service: ${pName}`, amount: cost });
+            refresh();
+        }
+
+        function doRegister() {
+            db.fleet.push({ id: document.getElementById('r-id').value.toUpperCase(), name: document.getElementById('r-name').value, timestamp: getNow() });
+            closeModal('reg'); refresh();
+        }
+
+        function doStock() {
+            db.inventory.push({ name: document.getElementById('i-name').value, qty: parseInt(document.getElementById('i-qty').value) || 0, cost: parseFloat(document.getElementById('i-cost').value) || 0, timestamp: getNow() });
+            refresh();
+        }
+
+        function prepEdit(dept, idx) {
+            currentEdit = { dept, idx }; const rec = db[dept][idx]; let html = '';
+            if (dept === 'finance' || dept === 'po') {
+                html += `<div><label class="text-[10px] font-black text-slate-400 uppercase">date</label><input type="datetime-local" id="edit-date" value="${formatDateForInput(rec.date)}" class="w-full p-4 rounded-xl bg-slate-50 font-bold"></div>`;
+            }
+            for (let k in rec) { 
+                if(['date','type','timestamp','isSettlement'].includes(k)) continue;
+                html += `<div><label class="text-[10px] font-black text-slate-400 uppercase">${k}</label><input type="text" id="edit-${k}" value="${rec[k]}" class="w-full p-4 rounded-xl bg-slate-50 font-bold"></div>`;
+            }
+            document.getElementById('edit-fields').innerHTML = html; openModal('edit');
+        }
+
+        function commitEdit() {
+            const { dept, idx } = currentEdit;
+            if ((dept === 'finance' || dept === 'po') && document.getElementById('edit-date')) {
+                db[dept][idx]['date'] = parseInputToLocaleString(document.getElementById('edit-date').value);
+            }
+            for (let k in db[dept][idx]) {
+                if (k === 'date' && (dept === 'finance' || dept === 'po')) continue;
+                const el = document.getElementById('edit-' + k);
+                if (el) {
+                    db[dept][idx][k] = (isNaN(el.value) || el.value === "") ? el.value : parseFloat(el.value);
+                }
+            }
+
+            // Recalculate net payout dynamically if editing a settlement transaction
+            if (dept === 'finance' && db[dept][idx].isSettlement) {
+                const rec = db[dept][idx];
+                const baseRate = parseFloat(rec.baseRate) || 0;
+                const regHrs = parseFloat(rec.regHrs) || 0;
+                const otHrs = parseFloat(rec.otHrs) || 0;
+                const rdHrs = parseFloat(rec.rdHrs) || 0;
+                const shHrs = parseFloat(rec.shHrs) || 0;
+                const holHrs = parseFloat(rec.holHrs) || 0;
+                const manualDeductions = parseFloat(rec.manualDeductions) || 0;
+                
+                const grossBasic = baseRate * regHrs;
+                const otPay = baseRate * 1.25 * otHrs;
+                const rdPay = baseRate * 1.30 * rdHrs;
+                const shPay = baseRate * 1.30 * shHrs;
+                const holPay = baseRate * 2.00 * holHrs;
+                const grossEarnings = grossBasic + otPay + rdPay + shPay + holPay;
+                
+                const sssEE = parseFloat(rec.sssEE) || 0;
+                const phEE = parseFloat(rec.phEE) || 0;
+                const pagibigEE = parseFloat(rec.pagibigEE) || 0;
+                
+                const totalDeductions = manualDeductions + sssEE + phEE + pagibigEE;
+                const calculatedNet = grossEarnings - totalDeductions;
+                
+                db[dept][idx].amount = calculatedNet;
+            }
+
+            closeModal('edit'); refresh();
+        }
+
+        function removeItem(dept, idx) { if(confirm("Delete record?")) { db[dept].splice(idx,1); refresh(); } }
+        function resetSystem() { if(confirm("Wipe all data?")) { db = JSON.parse(JSON.stringify(DEFAULT_DB)); refresh(); } }
+
+        function saveJSON() {
+            const blob = new Blob([JSON.stringify({ system: db, users: userDb }, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+            a.download = `ULLSWATER_BACKUP_${new Date().toISOString().split('T')[0]}.json`; a.click();
+        }
+
+        function loadJSON(input) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    if(parsed.system) db = parsed.system;
+                    if(parsed.users) userDb = parsed.users;
+                    saveUsers(); refresh(); alert("System fully restored.");
+                } catch(err) { alert("Invalid structure."); }
+            };
+            reader.readAsText(input.files[0]);
+        }
+    </script>
+</body>
+</html>
