@@ -339,6 +339,15 @@
                         <input type="number" id="ps-rate-display" class="w-full p-4 rounded-xl bg-slate-50 font-bold text-xs" placeholder="0.00" oninput="calculateSettlementTotal()">
                     </div>
                 </div>
+                <div class="grid grid-cols-1 gap-3">
+                    <div>
+                        <label class="text-[10px] font-black text-slate-400 uppercase block mb-1">Employment / Engagement Category</label>
+                        <select id="ps-employment-type" class="w-full p-4 rounded-xl bg-slate-50 font-bold text-xs">
+                            <option value="REGULAR">REGULAR EMPLOYEE</option>
+                            <option value="PIECE_RATE_NO_EE_ER">PIECE RATE WITHOUT EMPLOYEE EMPLOYER RELATIONSHIP</option>
+                        </select>
+                    </div>
+                </div>
                 <hr class="border-slate-100">
                 <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
                     <div>
@@ -878,7 +887,6 @@
             }
         }
 
-        // Standard function definitions preserved
         function logout() { location.reload(); }
 
         function applyPermissions() {
@@ -951,17 +959,15 @@
                 const amt = qty * rate;
                 row.querySelector('.ded-amount-label').innerText = php(amt);
                 
-                // Deductions reduce net, Additions (with 'Addition' in their category or emerald fields) add to the gross.
                 const categoryInput = row.querySelector('.ded-category');
                 const isAddition = categoryInput && (categoryInput.placeholder.includes('Addition') || categoryInput.value.toLowerCase().includes('addition') || categoryInput.classList.contains('bg-emerald-50'));
                 if (isAddition) {
-                    manualDeductions -= amt; // subtracted from deductions = added to net
+                    manualDeductions -= amt;
                 } else {
                     manualDeductions += amt;
                 }
             });
             
-            // 2026 Compliant Multiplier Computation Pipeline
             const grossBasic = baseRate * regHrs;
             const otPay = baseRate * 1.25 * otHrs;
             const rdPay = baseRate * 1.30 * rdHrs;
@@ -974,15 +980,9 @@
 
             if(staffIdx !== "" && db.staff[staffIdx]) {
                 const mSalary = db.staff[staffIdx].rate || 0;
-                
-                // SSS 2026 Compliance Vector
                 sssEE = (mSalary * 0.05) / 2;
-                
-                // PhilHealth 2026 Compliance Vector
                 const phBase = Math.min(mSalary, 100000);
                 phEE = (phBase * 0.025) / 2;
-                
-                // Pag-IBIG 2026 Compliance Vector
                 pagibigEE = 100;
             }
 
@@ -1007,6 +1007,7 @@
             }
             
             const staffMem = db.staff[staffIdx];
+            const employmentType = document.getElementById('ps-employment-type') ? document.getElementById('ps-employment-type').value : 'REGULAR';
             const baseRate = parseFloat(document.getElementById('ps-rate-display').value) || 0;
             const regHrs = parseFloat(document.getElementById('ps-hrs-reg').value) || 0;
             const otHrs = parseFloat(document.getElementById('ps-hrs-ot').value) || 0;
@@ -1061,6 +1062,7 @@
                 isSettlement: true,
                 staffName: staffMem.name,
                 staffRole: staffMem.role,
+                employmentType: employmentType,
                 fDate: fDate,
                 tDate: tDate,
                 baseRate: baseRate,
@@ -1080,7 +1082,6 @@
                 thMonth: thMonth
             });
             
-            // Reset deduction and addition rows after dispatch
             document.querySelectorAll('#ps-deductions-container .ps-ded-row').forEach(row => {
                 row.querySelector('.ded-category').value = '';
                 row.querySelector('.ded-qty').value = '';
@@ -1092,7 +1093,6 @@
             closeModal('payroll-settlement');
             refresh();
             
-            // Print newly posted settlement slip
             printTicket(db.finance.length - 1);
         }
 
@@ -1310,7 +1310,6 @@
             let ticketHtml = '';
             
             if (data.isSettlement) {
-                // Read from database dynamically so edited changes propagate to final slip recalculations
                 const baseRate = parseFloat(data.baseRate) || 0;
                 const regHrs = parseFloat(data.regHrs) || 0;
                 const otHrs = parseFloat(data.otHrs) || 0;
@@ -1326,270 +1325,367 @@
                 const holPay = baseRate * 2.00 * holHrs;
                 const grossEarnings = grossBasic + otPay + rdPay + shPay + holPay;
                 
-                const sssEE = parseFloat(data.sssEE) || 0;
-                const sssER = parseFloat(data.sssER) || 0;
-                const phEE = parseFloat(data.phEE) || 0;
-                const phER = parseFloat(data.phER) || 0;
-                const pagibigEE = parseFloat(data.pagibigEE) || 0;
-                const pagibigER = parseFloat(data.pagibigER) || 0;
-                const thMonth = parseFloat(data.thMonth) || 0;
-                
-                const totalDeductions = manualDeductions + sssEE + phEE + pagibigEE;
-                const calculatedNet = grossEarnings - totalDeductions;
-                
+                const totalDeductions = manualDeductions + data.sssEE + data.phEE + data.pagibigEE;
+                const net = grossEarnings - totalDeductions;
+
+                let dedRowsHtml = '';
+                if(data.manualDeductionsList && data.manualDeductionsList.length > 0) {
+                    data.manualDeductionsList.forEach(d => {
+                        const rowTypeLabel = d.isAddition ? 'ADDITION' : 'DEDUCTION';
+                        dedRowsHtml += `<tr><td>${d.category} (${rowTypeLabel})</td><td style="text-align:right;">${d.qty} x ${php(d.rate)}</td><td style="text-align:right;">${php(d.amount)}</td></tr>`;
+                        if(d.notes) {
+                            dedRowsHtml += `<tr><td colspan="3" style="font-size:8px; font-style:italic; padding-left:10px;">Note: ${d.notes}</td></tr>`;
+                        }
+                    });
+                }
+
                 ticketHtml = `
                 <div class="receipt-print-only">
                     <div style="text-align: center; border-bottom: 2px dashed #000; padding-bottom: 10px; margin-bottom: 10px;">
-                        <h2 style="margin: 0; font-size: 15px;">ULLSWATER CORPORATION</h2>
-                        <p style="margin: 0; font-size: 9px; letter-spacing: 1px;">2026 COMPLIANT BIMONTHLY PAYROLL SLIP</p>
+                        <h2 style="margin: 0; font-size: 16px;">ULLSWATER CORPORATION</h2>
+                        <p style="margin: 0; font-size: 9px; font-weight: bold;">2026 LABOR LAW COMPLIANT SETTLEMENT SLIP</p>
+                        <p style="margin: 0; font-size: 8px;">Period: ${data.fDate} to ${data.tDate}</p>
                     </div>
-                    <div style="font-size: 11px; line-height: 1.5;">
-                        <p><strong>PERIOD COVERAGE:</strong> ${data.fDate} to ${data.tDate}</p>
-                        <p><strong>BENEFICIARY:</strong> ${data.staffName} [${data.staffRole}]</p>
-                        <p><strong>ASSIGNED UNIT ID:</strong> ${data.unitId}</p>
-                        <p><strong>BASE CALCULATION STANDARD:</strong> ${php(baseRate)}/hr</p>
-                        <hr style="border-top:1px dashed #000; margin: 5px 0;">
-                        <p>Regular Hours Earned: ${regHrs} (${php(grossBasic)})</p>
-                        <p>Overtime Multiplier (1.25x): ${otHrs} (${php(otPay)})</p>
-                        <p>Rest Day Multiplier (1.30x): ${rdHrs} (${php(rdPay)})</p>
-                        <p>Special Holiday Multiplier (1.30x): ${shHrs} (${php(shPay)})</p>
-                        <p>Legal Holiday Multiplier (2.00x): ${holHrs} (${php(holPay)})</p>
-                        <p style="font-weight:bold;">GROSS PERIOD EARNINGS: ${php(grossEarnings)}</p>
-                        <hr style="border-top:1px dashed #000; margin: 5px 0;">
-                        <p style="font-size:9px; text-decoration: underline;">STATUTORY REMITTANCES & MANUAL ADJUSTMENTS</p>
-                        <p>SSS Contribution: ${php(sssEE)} / ER: ${php(sssER)}</p>
-                        <p>PhilHealth Contribution: ${php(phEE)} / ER: ${php(phER)}</p>
-                        <p>Pag-IBIG Contribution: ${php(pagibigEE)} / ER: ${php(pagibigER)}</p>
-                        ${(data.manualDeductionsList && data.manualDeductionsList.length > 0) ? 
-                            data.manualDeductionsList.map(d => `<p style="padding-left:10px;">- ${d.category} (x${d.qty} @ ${php(d.rate)}): ${d.isAddition ? '+' : '-'}${php(d.amount)} ${d.notes ? `[${d.notes}]` : ''}</p>`).join('') :
-                            `<p>Manual Adjustments/Deductions: -${php(manualDeductions)}</p>`
-                        }
-                        <p class="text-green-700">13th Month Accrual Asset: +${php(thMonth)}</p>
-                        <div style="border-top: 1px solid #000; border-bottom: 1px solid #000; margin: 10px 0; padding: 5px 0; font-size: 13px; text-align: right;">
-                            <strong>NET CASH OUTFLOW Payout: ${php(calculatedNet)}</strong>
-                        </div>
+                    <div style="font-size: 10px; line-height: 1.4; margin-bottom: 10px;">
+                        <p style="margin:2px 0;"><strong>PERSONNEL:</strong> ${data.staffName}</p>
+                        <p style="margin:2px 0;"><strong>ROLE/UNIT:</strong> ${data.staffRole} / ${data.unitId}</p>
+                        <p style="margin:2px 0;"><strong>CATEGORY:</strong> ${data.employmentType}</p>
                     </div>
-                    <div style="margin-top: 40px; border-top: 1px solid #000; padding-top: 5px; font-size: 8px; text-align: center;">
-                        SETTLEMENT AUTHORITY OFFICIAL SIGN-OFF RECORD
+                    <div style="border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 5px 0; margin-bottom: 10px; font-size: 9px;">
+                        <p style="font-weight:bold; margin:2px 0;">EARNINGS BREAKDOWN:</p>
+                        <table style="width:100%; font-size:9px;">
+                            <tr><td>Regular (${regHrs} hrs @ ${php(baseRate)})</td><td style="text-align:right;">${php(grossBasic)}</td></tr>
+                            ${otHrs > dtVal(0) ? `<tr><td>Overtime (${otHrs} hrs @ 1.25x)</td><td style="text-align:right;">${php(otPay)}</td></tr>` : ''}
+                            ${rdHrs > dtVal(0) ? `<tr><td>Rest Day (${rdHrs} hrs @ 1.30x)</td><td style="text-align:right;">${php(rdPay)}</td></tr>` : ''}
+                            ${shHrs > dtVal(0) ? `<tr><td>Special Holiday (${shHrs} hrs @ 1.30x)</td><td style="text-align:right;">${php(shPay)}</td></tr>` : ''}
+                            ${holHrs > dtVal(0) ? `<tr><td>Legal Holiday (${holHrs} hrs @ 2.00x)</td><td style="text-align:right;">${php(holPay)}</td></tr>` : ''}
+                        </table>
+                        <div style="text-align:right; font-weight:bold; margin-top:4px; border-top:1px solid #ccc; padding-top:2px;">GROSS EARNINGS: ${php(grossEarnings)}</div>
                     </div>
-                    <div style="text-align: center; margin-top: 15px; font-size: 8px;">
-                        <p>Timestamp Secure Vector: ${data.date}</p>
+                    <div style="border-bottom: 1px dashed #000; padding-bottom: 5px; margin-bottom: 10px; font-size: 9px;">
+                        <p style="font-weight:bold; margin:2px 0;">DEDUCTIONS & CONTRIBUTIONS:</p>
+                        <table style="width:100%; font-size:9px;">
+                            ${dedRowsHtml}
+                            <tr><td>SSS Contribution (EE 5%)</td><td style="text-align:right;">${php(data.sssEE)}</td></tr>
+                            <tr><td>PhilHealth Contribution (EE 2.5%)</td><td style="text-align:right;">${php(data.phEE)}</td></tr>
+                            <tr><td>Pag-IBIG Contribution (Fixed)</td><td style="text-align:right;">${php(data.pagibigEE)}</td></tr>
+                        </table>
+                        <div style="text-align:right; font-weight:bold; margin-top:4px; border-top:1px solid #ccc; padding-top:2px;">TOTAL DEDUCTIONS: (${php(totalDeductions)})</div>
+                    </div>
+                    <div style="font-size: 9px; margin-bottom: 10px; background: #f9f9f9; padding: 5px;">
+                        <p style="margin:1px 0;"><strong>ACCRUALS / ER SHARES:</strong></p>
+                        <p style="margin:1px 0;">13th Month Bimonthly Accrual: ${php(data.thMonth)}</p>
+                        <p style="margin:1px 0;">SSS ER Share: ${php(data.sssER)} | PH ER Share: ${php(data.phER)}</p>
+                    </div>
+                    <div style="border-top: 2px solid #000; border-bottom: 2px solid #000; padding: 6px 0; margin-bottom: 15px; text-align: right; font-size: 13px; font-weight: bold;">
+                        NET PAYOUT: ${php(net)}
+                    </div>
+                    <div style="margin-top: 40px; border-top: 1px solid #000; text-align: center; font-size: 8px; padding-top: 4px;">
+                        RECEIVED BY / EMPLOYEE SIGNATURE
                     </div>
                 </div>`;
             } else {
-                ticketHtml = `<div class="receipt-print-only"><div style="text-align: center; border-bottom: 2px dashed #000; padding-bottom: 10px; margin-bottom: 10px;"><h2 style="margin: 0; font-size: 18px;">ULLSWATER CORP</h2></div><div style="font-size: 12px;"><p><strong>DESC:</strong> ${data.desc}</p><h3 style="text-align:right;">TOTAL: ${php(data.amount)}</h3></div></div>`;
+                ticketHtml = `
+                <div class="receipt-print-only">
+                    <div style="text-align: center; border-bottom: 2px dashed #000; padding-bottom: 10px; margin-bottom: 10px;">
+                        <h2 style="margin: 0; font-size: 18px;">ULLSWATER CORP</h2>
+                        <p style="margin: 0; font-size: 10px;">FINANCIAL TRANSACTION VOUCHER</p>
+                    </div>
+                    <div style="font-size: 12px; line-height: 1.6;">
+                        <p><strong>TIMESTAMP:</strong> ${data.date}</p>
+                        <p><strong>ASSET UNIT:</strong> ${data.unitId}</p>
+                        <p><strong>TYPE:</strong> ${data.type}</p>
+                        <p><strong>DESCRIPTION:</strong> ${data.desc}</p>
+                        <div style="border-top: 1px solid #000; border-bottom: 1px solid #000; margin: 10px 0; padding: 5px 0; font-size: 16px; text-align: right;">
+                            <strong>AMOUNT: ${php(data.amount)}</strong>
+                        </div>
+                    </div>
+                    <div style="margin-top: 40px; border-top: 1px solid #000; padding-top: 5px; font-size: 8px; text-align: center;">
+                        AUTHORIZED SIGNATURE
+                    </div>
+                </div>`;
             }
 
-            const pW = window.open('', '_blank');
-            pW.document.write(`<html><head><style>body { font-family: sans-serif; padding: 20px; } .receipt-print-only { width: 80mm; margin: 0 auto; font-family: 'Courier New', monospace; }</style></head><body>${ticketHtml}</body></html>`);
-            pW.document.close();
-            setTimeout(() => { pW.print(); pW.close(); }, 500);
+            const w = window.open('', '_blank');
+            w.document.write(`<html><head><style>body { font-family: sans-serif; padding: 20px; } .receipt-print-only { width: 80mm; margin: 0 auto; font-family: 'Courier New', monospace; }</style></head><body>${ticketHtml}</body></html>`);
+            w.document.close();
+            setTimeout(() => { w.print(); w.close(); }, 500);
         }
+
+        function dtVal(val) { return val; }
 
         function printMotorpoolTicket(idx) {
             const data = db.maint[idx];
-            const html = `<div class="receipt-print-only"><div style="text-align: center; border-bottom: 2px dashed #000; padding-bottom: 10px;"><h2 style="margin:0;">MOTORPOOL LOG</h2></div><p>Unit: ${data.unitId}</p><p>Jobs: ${data.jobs}</p></div>`;
+            const html = `<div class="receipt-print-only"><div style="text-align: center; border-bottom: 2px dashed #000; padding-bottom: 10px; margin-bottom: 10px;"><h2 style="margin: 0; font-size: 18px;">MOTORPOOL LOG</h2><p style="margin: 0; font-size: 10px;">JOB ORDER TICKET</p></div><div style="font-size: 12px; line-height: 1.6;"><p><strong>UNIT:</strong> ${data.unitId}</p><p><strong>DATE:</strong> ${data.date}</p><p><strong>MECHANIC NOTES:</strong> ${data.jobs}</p><p><strong>PART USED:</strong> ${data.partName} (Qty: ${data.partQty})</p></div><div style="margin-top: 40px; border-top: 1px solid #000; padding-top: 5px; font-size: 8px; text-align: center;">MECHANIC / SUPERVISOR SIGNATURE</div></div>`;
             const w = window.open('', '_blank'); w.document.write(html); w.document.close();
             setTimeout(() => { w.print(); w.close(); }, 500);
         }
 
-        function doPurchaseOrder() {
-            const vendor = document.getElementById('po-vendor').value.trim();
-            const unit = document.getElementById('po-unit').value;
-            const customDateInput = document.getElementById('po-date').value;
-            const date = customDateInput ? parseInputToLocaleString(customDateInput) : getNow();
-            let loggedItems = [], grandTotal = 0;
-
-            document.querySelectorAll('#po-items-container .po-row').forEach(row => {
-                const desc = row.querySelector('.item-desc').value.trim();
-                const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
-                const price = parseFloat(row.querySelector('.item-price').value) || 0;
-                if (desc !== "" && qty > 0 && price > 0) {
-                    loggedItems.push(`${desc} (x${qty})`); grandTotal += (qty * price);
-                }
-            });
-            if (!vendor || loggedItems.length === 0 || grandTotal <= 0) return alert("Invalid parameters.");
-            if(!db.po) db.po = [];
-            db.po.push({ date, vendor, item: loggedItems.join(', '), amount: grandTotal, unitId: unit, notes: document.getElementById('po-notes').value });
-            db.finance.push({ date, unitId: unit, type: 'COST', desc: `[PO] ${vendor} - ${loggedItems.join(', ')}`, amount: grandTotal });
-            closeModal('po'); refresh();
-        }
-
-        function addUser() {
-            const u = document.getElementById('nu-name').value;
-            const p = document.getElementById('nu-pass').value;
-            const r = document.getElementById('nu-role').value;
-            if (!u || !p) return alert("Credentials required.");
-            userDb[u] = { pass: p, role: r }; saveUsers(); refresh();
-        }
-
-        function removeUser(u) {
-            if (u === 'admin') return alert("Cannot remove master admin.");
-            if (confirm(`Revoke access for ${u}?`)) { delete userDb[u]; saveUsers(); refresh(); }
-        }
-
-        function saveUsers() { localStorage.setItem('ULLSWATER_USERS', JSON.stringify(userDb)); }
-
-        function doExpense() {
-            const uId = document.getElementById('exp-unit').value;
-            const cat = document.getElementById('exp-cat').value;
-            const customDateInput = document.getElementById('exp-date').value;
-            const txDate = customDateInput ? parseInputToLocaleString(customDateInput) : getNow();
-            let loggedItems = [], grandTotal = 0;
-
-            document.querySelectorAll('#exp-items-container .exp-row').forEach(row => {
-                const desc = row.querySelector('.item-desc').value.trim();
-                const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
-                const price = parseFloat(row.querySelector('.item-price').value) || 0;
-                if (desc !== "" && qty > 0 && price > 0) { loggedItems.push(`${desc} (x${qty})`); grandTotal += (qty * price); }
-            });
-            if (loggedItems.length === 0 || grandTotal <= 0) return alert("Check inputs.");
-            db.finance.push({ date: txDate, unitId: uId, type: 'COST', desc: `[${cat}] ${loggedItems.join(', ')}`, amount: grandTotal });
-            closeModal('exp'); refresh();
-        }
-
-        function doAddStaff() {
-            const name = document.getElementById('s-name').value;
-            if(!name) return alert("Employee Name is required.");
-            db.staff.push({ name, dept: document.getElementById('s-dept-input').value, role: document.getElementById('s-role').value, unitId: document.getElementById('s-unit').value, rate: parseFloat(document.getElementById('s-rate').value) || 0, notes: document.getElementById('s-notes').value, timestamp: getNow() });
-            closeModal('staff'); refresh();
-        }
-
-        function doRegister() {
-            const id = document.getElementById('r-id').value.toUpperCase().trim();
-            const name = document.getElementById('r-name').value.trim();
-            if(!id || !name) return alert("All fields required.");
-            db.fleet.push({ id, name, timestamp: getNow() });
-            closeModal('reg'); refresh();
+        function printDept() {
+            document.getElementById('print-dept-name').innerText = currentTab.toUpperCase() + ' DEPARTMENT REPORT';
+            document.getElementById('print-date').innerText = getNow();
+            
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('print-target'));
+            const targetTabEl = document.getElementById('tab-' + currentTab);
+            if(targetTabEl) targetTabEl.classList.add('print-target');
+            
+            window.print();
         }
 
         function doStock() {
             const name = document.getElementById('i-name').value.trim();
-            const qty = parseInt(document.getElementById('i-qty').value) || 0;
-            const cost = parseFloat(document.getElementById('i-cost').value) || 0;
-            if(!name || qty <= 0 || cost <= 0) return alert("Check parameters.");
+            const qty = parseFloat(document.getElementById('i-qty').value);
+            const cost = parseFloat(document.getElementById('i-cost').value);
+            if(!name || isNaN(qty) || isNaN(cost)) return alert("Please fill out all stock entry fields properly.");
             db.inventory.push({ name, qty, cost, timestamp: getNow() });
-            document.getElementById('i-name').value = "";
-            document.getElementById('i-qty').value = "";
-            document.getElementById('i-cost').value = "";
+            document.getElementById('i-name').value = '';
+            document.getElementById('i-qty').value = '';
+            document.getElementById('i-cost').value = '';
             refresh();
         }
 
         function doJobOrder() {
             const unitId = document.getElementById('m-unit').value;
-            const idx = document.getElementById('m-part-idx').value;
-            const partQty = parseInt(document.getElementById('m-part-qty').value) || 0;
+            const partIdx = document.getElementById('m-part-idx').value;
+            const partQty = parseFloat(document.getElementById('m-part-qty').value) || 0;
             const jobs = document.getElementById('m-jobs').value.trim();
-            if(!jobs) return alert("Provide mechanics description.");
-            let partName = "None (Labor Only)";
-            if(idx !== "") {
-                const item = db.inventory[idx];
-                if(item.qty < partQty) return alert("Insufficient inventory.");
-                item.qty -= partQty;
-                partName = item.name;
-                db.finance.push({ date: getNow(), unitId, type: 'COST', desc: `[Motorpool Parts] ${partName} (x${partQty}) used for Job Order`, amount: partQty * item.cost });
+            if(!jobs) return alert("Please provide mechanic notes.");
+
+            let partName = "None / Labor Only";
+            if(partIdx !== "") {
+                const p = db.inventory[partIdx];
+                if(p) {
+                    if(p.qty < partQty) return alert(`Insufficient stock for ${p.name}. Only ${p.qty} available.`);
+                    p.qty -= partQty;
+                    partName = p.name;
+                    db.finance.push({
+                        date: getNow(),
+                        unitId: unitId,
+                        type: 'COST',
+                        desc: `[Motorpool] Used ${partQty}x ${p.name} for maintenance`,
+                        amount: partQty * p.cost
+                    });
+                }
             }
+
             db.maint.push({ unitId, jobs, partName, partQty, date: getNow() });
-            document.getElementById('m-part-qty').value = "";
-            document.getElementById('m-jobs').value = "";
+            document.getElementById('m-jobs').value = '';
+            document.getElementById('m-part-qty').value = '';
+            refresh();
+        }
+
+        function doPurchaseOrder() {
+            const date = parseInputToLocaleString(document.getElementById('po-date').value);
+            const vendor = document.getElementById('po-vendor').value.trim();
+            const unitId = document.getElementById('po-unit').value;
+            const notes = document.getElementById('po-notes').value.trim();
+            
+            if(!vendor) return alert("Please specify a vendor name.");
+
+            let grandTotal = 0;
+            let itemsSummary = [];
+            document.querySelectorAll('#po-items-container .po-row').forEach(row => {
+                const desc = row.querySelector('.item-desc').value.trim();
+                const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+                const price = parseFloat(row.querySelector('.item-price').value) || 0;
+                const amt = qty * price;
+                if(desc && amt > 0) {
+                    itemsSummary.push(`${qty}x ${desc} @ ${php(price)}`);
+                    grandTotal += amt;
+                }
+            });
+
+            if(grandTotal <= 0) return alert("Please include at least one valid item line with quantity and price.");
+
+            const fullItemDesc = itemsSummary.join(', ');
+            db.po.push({ date, vendor, item: fullItemDesc, amount: grandTotal, unitId, notes });
+            db.finance.push({ date, unitId, type: 'COST', desc: `[PO] ${vendor} - ${fullItemDesc}`, amount: grandTotal });
+
+            document.getElementById('po-vendor').value = '';
+            document.getElementById('po-notes').value = '';
+            document.querySelectorAll('#po-items-container input').forEach(inp => inp.value = '');
+            document.querySelectorAll('#po-items-container .item-amount-label').forEach(lbl => lbl.innerText = '₱0.00');
+            document.getElementById('po-computed-grand-total').innerText = '₱0.00';
+
+            closeModal('po');
+            refresh();
+        }
+
+        function doExpense() {
+            const date = parseInputToLocaleString(document.getElementById('exp-date').value);
+            const unitId = document.getElementById('exp-unit').value;
+            const cat = document.getElementById('exp-cat').value;
+
+            let grandTotal = 0;
+            let itemsSummary = [];
+            document.querySelectorAll('#exp-items-container .exp-row').forEach(row => {
+                const desc = row.querySelector('.item-desc').value.trim();
+                const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+                const price = parseFloat(row.querySelector('.item-price').value) || 0;
+                const amt = qty * price;
+                if(desc && amt > 0) {
+                    itemsSummary.push(`${qty}x ${desc} @ ${php(price)}`);
+                    grandTotal += amt;
+                }
+            });
+
+            if(grandTotal <= 0) return alert("Please include at least one valid expense line item.");
+
+            const fullDesc = `[${cat}] ${itemsSummary.join(', ')}`;
+            db.finance.push({ date, unitId, type: 'COST', desc: fullDesc, amount: grandTotal });
+
+            document.querySelectorAll('#exp-items-container input').forEach(inp => inp.value = '');
+            document.querySelectorAll('#exp-items-container .item-amount-label').forEach(lbl => lbl.innerText = '₱0.00');
+            document.getElementById('exp-computed-grand-total').innerText = '₱0.00';
+
+            closeModal('exp');
             refresh();
         }
 
         function doRevenue() {
-            const uId = document.getElementById('rev-unit').value;
-            const customDateInput = document.getElementById('rev-date').value;
-            const txDate = customDateInput ? parseInputToLocaleString(customDateInput) : getNow();
-            let loggedItems = [], grandTotal = 0;
+            const date = parseInputToLocaleString(document.getElementById('rev-date').value);
+            const unitId = document.getElementById('rev-unit').value;
 
+            let grandTotal = 0;
+            let itemsSummary = [];
             document.querySelectorAll('#rev-items-container .rev-row').forEach(row => {
                 const desc = row.querySelector('.item-desc').value.trim();
                 const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
                 const price = parseFloat(row.querySelector('.item-price').value) || 0;
-                if (desc !== "" && qty > 0 && price > 0) { loggedItems.push(`${desc} (x${qty})`); grandTotal += (qty * price); }
+                const amt = qty * price;
+                if(desc && amt > 0) {
+                    itemsSummary.push(`${qty}x ${desc} @ ${php(price)}`);
+                    grandTotal += amt;
+                }
             });
-            if (loggedItems.length === 0 || grandTotal <= 0) return alert("Check inputs.");
-            db.finance.push({ date: txDate, unitId: uId, type: 'REVENUE', desc: loggedItems.join(', '), amount: grandTotal });
-            closeModal('rev'); refresh();
+
+            if(grandTotal <= 0) return alert("Please include at least one valid income line item.");
+
+            const fullDesc = itemsSummary.join(', ');
+            db.finance.push({ date, unitId, type: 'REVENUE', desc: fullDesc, amount: grandTotal });
+
+            document.querySelectorAll('#rev-items-container input').forEach(inp => inp.value = '');
+            document.querySelectorAll('#rev-items-container .item-amount-label').forEach(lbl => lbl.innerText = '₱0.00');
+            document.getElementById('rev-computed-grand-total').innerText = '₱0.00';
+
+            closeModal('rev');
+            refresh();
+        }
+
+        function doAddStaff() {
+            const name = document.getElementById('s-name').value.trim();
+            const dept = document.getElementById('s-dept-input').value;
+            const role = document.getElementById('s-role').value;
+            const unitId = document.getElementById('s-unit').value;
+            const rate = parseFloat(document.getElementById('s-rate').value);
+            const notes = document.getElementById('s-notes').value.trim();
+
+            if(!name || isNaN(rate)) return alert("Please enter staff name and monthly salary rate.");
+            db.staff.push({ name, dept, role, unitId, rate, notes, timestamp: getNow() });
+            
+            document.getElementById('s-name').value = '';
+            document.getElementById('s-rate').value = '';
+            document.getElementById('s-notes').value = '';
+            closeModal('staff');
+            refresh();
+        }
+
+        function doRegister() {
+            const id = document.getElementById('r-id').value.trim().toUpperCase();
+            const name = document.getElementById('r-name').value.trim();
+            if(!id || !name) return alert("Please fill out unit ID and model description.");
+            if(db.fleet.some(f => f.id === id)) return alert("Unit ID already exists.");
+            db.fleet.push({ id, name, timestamp: getNow() });
+            document.getElementById('r-id').value = '';
+            document.getElementById('r-name').value = '';
+            closeModal('reg');
+            refresh();
+        }
+
+        function addUser() {
+            const u = document.getElementById('nu-name').value.trim();
+            const p = document.getElementById('nu-pass').value.trim();
+            const role = document.getElementById('nu-role').value;
+            if(!u || !p) return alert("Enter username and password.");
+            userDb[u] = { pass: p, role: role };
+            localStorage.setItem('ULLSWATER_USERS', JSON.stringify(userDb));
+            document.getElementById('nu-name').value = '';
+            document.getElementById('nu-pass').value = '';
+            refresh();
+        }
+
+        function removeUser(u) {
+            if(u === 'admin') return alert("Cannot remove default admin.");
+            if(confirm(`Remove access for ${u}?`)) {
+                delete userDb[u];
+                localStorage.setItem('ULLSWATER_USERS', JSON.stringify(userDb));
+                refresh();
+            }
+        }
+
+        function removeItem(dept, idx) {
+            if(confirm("Confirm record deletion?")) {
+                db[dept].splice(idx, 1);
+                refresh();
+            }
         }
 
         function prepEdit(dept, idx) {
             currentEdit = { dept, idx };
-            const data = db[dept][idx];
-            let html = '';
-            for (let key in data) {
-                if (key === 'timestamp' || key === 'date') {
-                    html += `<div><label class="text-[10px] font-black text-slate-400 uppercase block mb-1">${key}</label><input type="datetime-local" id="edit-${key}" class="w-full p-4 rounded-xl bg-slate-50 font-bold" value="${formatDateForInput(data[key])}"></div>`;
-                } else {
-                    html += `<div><label class="text-[10px] font-black text-slate-400 uppercase block mb-1">${key}</label><input type="text" id="edit-${key}" class="w-full p-4 rounded-xl bg-slate-50 font-bold" value="${data[key]}"></div>`;
-                }
+            const item = db[dept][idx];
+            let fieldsHtml = '';
+            for(let key in item) {
+                fieldsHtml += `<div><label class="text-[10px] font-black uppercase text-slate-400 block mb-1">${key}</label><input type="text" id="edit-val-${key}" value="${item[key]}" class="w-full p-3 rounded-xl bg-slate-50 font-bold text-xs"></div>`;
             }
-            document.getElementById('edit-fields').innerHTML = html;
+            document.getElementById('edit-fields').innerHTML = fieldsHtml;
             openModal('edit');
         }
 
         function commitEdit() {
             const { dept, idx } = currentEdit;
-            const record = db[dept][idx];
-            for (let key in record) {
-                const inputEl = document.getElementById(`edit-${key}`);
-                if (inputEl) {
-                    let val = inputEl.value;
-                    if (key === 'timestamp' || key === 'date') {
-                        record[key] = parseInputToLocaleString(val);
-                    } else {
-                        record[key] = isNaN(val) || val === "" ? val : parseFloat(val);
-                    }
+            const item = db[dept][idx];
+            for(let key in item) {
+                const el = document.getElementById(`edit-val-${key}`);
+                if(el) {
+                    let val = el.value;
+                    item[key] = (key === 'qty' || key === 'cost' || key === 'rate' || key === 'amount' || key === 'partQty') ? parseFloat(val) || 0 : val;
                 }
             }
-            closeModal('edit'); refresh();
-        }
-
-        function removeItem(dept, idx) {
-            if (confirm("Permanently delete this item?")) { db[dept].splice(idx, 1); refresh(); }
+            closeModal('edit');
+            refresh();
         }
 
         function saveJSON() {
-            const blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' });
-            const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-            a.download = `ULLSWATER_SYSTEM_BACKUP_${new Date().toISOString().split('T')[0]}.json`;
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db));
+            const a = document.createElement('a'); a.href = dataStr;
+            a.download = `ULLSWATER_FLEET_BACKUP_${new Date().toISOString().split('T')[0]}.json`;
             a.click();
         }
 
         function loadJSON(input) {
-            const file = input.files[0]; if(!file) return;
+            const file = input.files[0];
+            if(!file) return;
             const reader = new FileReader();
             reader.onload = (e) => {
                 try {
-                    const imported = JSON.parse(e.target.result);
-                    if(imported.fleet && imported.finance) { db = imported; refresh(); alert("System state restored successfully."); }
-                } catch(err) { alert("Invalid file structure."); }
+                    db = JSON.parse(e.target.result);
+                    refresh();
+                    alert("System successfully restored from backup.");
+                } catch(err) { alert("Invalid backup JSON format."); }
             };
             reader.readAsText(file);
         }
 
         function resetSystem() {
-            if(confirm("DANGER: WIPE ALL SYSTEMS AND REVERT TO TEMPLATE?")) {
-                db = JSON.parse(JSON.stringify(DEFAULT_DB)); refresh();
+            if(confirm("CRITICAL WARNING: This will wipe all current transactions and reset database. Proceed?")) {
+                db = JSON.parse(JSON.stringify(DEFAULT_DB));
+                refresh();
             }
-        }
-
-        function printDept() {
-            document.getElementById('print-dept-name').innerText = currentTab + " Statement Record";
-            document.getElementById('print-date').innerText = getNow();
-            const tabEl = document.getElementById('tab-' + currentTab);
-            tabEl.classList.add('print-target');
-            window.print();
-            tabEl.classList.remove('print-target');
         }
 
         window.onload = () => {
-            // Check session
-            if (activeUser) {
-                document.getElementById('login-overlay').style.display = 'none';
-                applyPermissions();
-            }
-            refresh();
-        }
+            // Leave login overlay visible until authentication
+        };
     </script>
 </body>
 </html>
